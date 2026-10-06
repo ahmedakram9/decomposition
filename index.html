@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Decomposition</title>
+<style>
+:root{--sky:#DDEEFF;--ink:#1B2A49;--muted:#51628A;--line:#BCD3EE;--true:#11904A;--true-bg:#DCF4E5;--false:#C92A3B;--false-bg:#FDE2E5;--amber:#F2A007;
+  --display:"Trebuchet MS","Segoe UI",system-ui,sans-serif}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--sky);color:var(--ink);font-family:"Segoe UI",system-ui,sans-serif;line-height:1.5}
+[hidden]{display:none!important}
+.screen{display:none;min-height:100%;max-width:1000px;margin:0 auto;padding:1.5rem 1rem 2.5rem}
+.screen.show{display:block}
+h1{font-family:var(--display);font-size:clamp(2.2rem,6vw,3.4rem);margin:0;line-height:1.1}
+h2{font-family:var(--display);font-size:clamp(1.5rem,4vw,2rem);margin:0}
+.btn{border:0;border-radius:14px;padding:.75rem 1.5rem;font-weight:700;font-size:1.15rem;cursor:pointer;background:var(--ink);color:#fff;font-family:inherit}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.light{background:#fff;color:var(--ink);border:2px solid var(--ink)}
+button:focus-visible{outline:3px solid var(--amber);outline-offset:3px}
+.top{display:flex;align-items:center;gap:1rem;margin-bottom:1rem;flex-wrap:wrap}
+.top h2{margin-right:auto}
+.card{background:#fff;border:2px solid var(--line);border-radius:20px;padding:1.5rem}
+
+#home{display:none;text-align:center;padding-top:7vh}
+#home.show{display:block}
+.def{font-size:1.3rem;max-width:36ch;margin:1rem auto 2.5rem;color:var(--muted)}
+.choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.25rem;max-width:820px;margin:0 auto}
+.choice{background:#fff;border:3px solid var(--ink);border-radius:20px;padding:1.6rem 1rem;cursor:pointer;font-family:inherit;color:var(--ink)}
+.choice:hover{background:#FFF7E0}
+.choice b{display:block;font-family:var(--display);font-size:1.6rem}
+.choice span{color:var(--muted)}
+.choice svg{width:64px;height:64px;margin-bottom:.5rem}
+
+/* watch */
+.scene{border-radius:16px;overflow:hidden;border:2px solid var(--line);background:#fff}
+.scene svg{display:block;width:100%;height:auto}
+.caption{font-family:var(--display);font-size:clamp(1.2rem,3vw,1.55rem);font-weight:700;text-align:center;min-height:2.8em;margin:1rem 0 .5rem}
+.caption.t{color:var(--true)}
+.controls{display:flex;justify-content:center;gap:.75rem;flex-wrap:wrap}
+.def-box{background:#FFF0C7;border-radius:14px;padding:.8rem 1rem;font-size:1.15rem;margin-top:1.25rem;text-align:center}
+.pop{transform-box:fill-box;transform-origin:50% 100%;transform:scale(0);opacity:0;transition:transform .5s cubic-bezier(.3,1.6,.5,1),opacity .3s}
+.pop.on{transform:scale(1);opacity:1}
+.fade{opacity:0;transition:opacity .5s}
+.fade.on{opacity:1}
+.grow{transition:stroke-dashoffset .6s ease}
+#rootG{transition:transform .8s ease}
+.leafbox,.l1box{transition:fill .35s}
+
+/* sort */
+.chips{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem}
+.chip{border:2px solid var(--ink);background:#fff;border-radius:999px;padding:.4rem 1rem;font-weight:700;cursor:pointer;font-family:inherit;color:var(--ink);font-size:1rem}
+.chip[aria-pressed="true"]{background:var(--ink);color:#fff}
+.chip:disabled{opacity:.45;cursor:default}
+#watch:fullscreen .chips{margin-bottom:.5rem}
+.bigprob{background:var(--false);color:#fff;font-family:var(--display);font-weight:700;font-size:clamp(1.3rem,3.5vw,1.8rem);text-align:center;border-radius:16px;padding:.7rem 1rem;max-width:520px;margin:0 auto}
+.branches{height:28px;max-width:860px;margin:0 auto;position:relative}
+.branches svg{width:100%;height:100%;display:block}
+.bins{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.75rem}
+@media(max-width:760px){.bins{grid-template-columns:repeat(2,minmax(0,1fr))}.branches{display:none}}
+.bin{background:#fff;border:3px solid var(--ink);border-radius:16px;padding:.6rem;min-height:11rem;cursor:pointer;display:flex;flex-direction:column;gap:.4rem;font-family:inherit;color:var(--ink);text-align:left;transition:background .2s,transform .2s}
+.bin:hover{background:#FFF7E0}
+.bin.ready{border-color:var(--amber);box-shadow:0 0 0 3px #FFE08A}
+.bin.shake{animation:shake .45s;background:var(--false-bg)}
+.bin.done{border-color:var(--true);background:var(--true-bg)}
+@keyframes shake{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+.bin h3{margin:0;font-family:var(--display);font-size:1.15rem;text-align:center;border-bottom:2px solid var(--line);padding-bottom:.35rem}
+.placed{background:var(--true-bg);border:2px solid var(--true);border-radius:10px;padding:.3rem .55rem;font-size:.98rem;font-weight:600;animation:drop .35s}
+@keyframes drop{from{transform:translateY(-10px);opacity:0}}
+.pool{display:flex;flex-wrap:wrap;gap:.6rem;justify-content:center;margin:1.25rem 0 .5rem;min-height:3.2rem}
+.task{border:2px solid var(--ink);background:#FFF7E0;border-radius:12px;padding:.55rem 1rem;font-size:1.05rem;font-weight:700;cursor:pointer;font-family:inherit;color:var(--ink);box-shadow:0 3px 0 var(--ink)}
+.task[aria-pressed="true"]{background:var(--amber);transform:translateY(-3px);box-shadow:0 6px 0 var(--ink)}
+.sortfb{border-radius:12px;padding:.8rem 1rem;font-size:1.1rem;text-align:center;min-height:3.2rem;margin-top:.5rem}
+.sortfb.t{background:var(--true-bg)}.sortfb.f{background:var(--false-bg)}.sortfb.n{background:#FFF0C7}
+
+/* quiz */
+.progress{height:12px;background:var(--line);border-radius:99px;overflow:hidden;margin-bottom:1rem}
+.progress i{display:block;height:100%;background:var(--amber);transition:width .3s}
+.q{font-size:1.4rem;font-weight:700;margin:.25rem 0 1rem}
+.opts{display:grid;gap:.6rem}
+.opt{text-align:left;border:2px solid var(--line);background:#fff;border-radius:12px;padding:.85rem 1rem;font-size:1.15rem;cursor:pointer;font-family:inherit;color:var(--ink)}
+.opt:hover:not(:disabled){border-color:var(--ink)}
+.opt.t{border-color:var(--true);background:var(--true-bg)}.opt.f{border-color:var(--false);background:var(--false-bg)}
+.opt:disabled{cursor:default}
+.fb{margin-top:1rem;border-radius:12px;padding:.85rem 1rem;font-size:1.1rem;display:none}
+.fb.t{display:block;background:var(--true-bg)}.fb.f{display:block;background:var(--false-bg)}
+.end{text-align:center;padding:1rem 0}.end .big{font-family:var(--display);font-size:4.5rem;font-weight:700;margin:.25rem 0;line-height:1}
+
+#watch.show:fullscreen,#sort.show:fullscreen{max-width:none;width:100%;height:100%;margin:0;padding:1rem 1.5rem;background:var(--sky);overflow:auto}
+#watch.show:fullscreen{display:flex;flex-direction:column}
+#watch:fullscreen .scene{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;background:transparent;border:0}
+#watch:fullscreen .scene svg{width:auto;height:auto;max-width:100%;max-height:100%;border-radius:16px;border:2px solid var(--line);background:#fff}
+#watch:fullscreen .def-box{display:none}
+#jsWarn{background:#FDE2E5;border:3px solid #C92A3B;color:#1B2A49;border-radius:14px;padding:1rem 1.25rem;margin:1rem auto;max-width:760px;font-size:1.1rem}
+</style>
+</head>
+<body>
+<div id="jsWarn"><b>The interactive part of this page isn't running.</b> This usually means the file is being shown as a preview (for example in email, Teams, OneDrive or Google Drive) or in an old browser. Download the file, then open it in Google Chrome or Microsoft Edge.</div>
+
+<!-- ================= HOME ================= -->
+<section id="home" class="show">
+  <h1>Decomposition</h1>
+  <p class="def">Breaking a big problem into smaller parts that are easier to solve</p>
+  <div class="choices">
+    <button class="choice" data-go="watch">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="29" fill="#F2A007" stroke="#1B2A49" stroke-width="3"/><path d="M26 20 L46 32 L26 44Z" fill="#1B2A49"/></svg>
+      <b>Watch</b><span>See a big problem broken down</span>
+    </button>
+    <button class="choice" data-go="sort">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="29" fill="#1C6FD1" stroke="#1B2A49" stroke-width="3"/><rect x="16" y="18" width="14" height="12" rx="3" fill="#fff"/><rect x="34" y="18" width="14" height="12" rx="3" fill="#fff"/><rect x="16" y="34" width="14" height="12" rx="3" fill="#fff"/><rect x="34" y="34" width="14" height="12" rx="3" fill="#FFE08A"/></svg>
+      <b>Sort it</b><span>Break problems down yourself</span>
+    </button>
+    <button class="choice" data-go="quiz">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="29" fill="#11904A" stroke="#1B2A49" stroke-width="3"/><path d="M19 33 L28 42 L46 23" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <b>Quiz</b><span>Test what you know</span>
+    </button>
+  </div>
+</section>
+
+<!-- ================= WATCH ================= -->
+<section id="watch" class="screen">
+  <div class="top">
+    <button class="btn light" data-go="home">Back</button>
+    <h2 id="watchTitle">Tidy your bedroom</h2>
+    <button class="btn light fsBtn" data-fs="watch">Full screen</button>
+    <button class="btn" data-go="sort">Next: Sort it</button>
+  </div>
+  <div class="chips" role="group" aria-label="Choose an example">
+    <button class="chip ex" data-ex="room" aria-pressed="true">1. Tidy your bedroom</button>
+    <button class="chip ex" data-ex="park" aria-pressed="false">2. Launch a rocket</button>
+    <button class="chip ex" data-ex="house" aria-pressed="false">3. Build a house</button>
+    <button class="chip ex" data-ex="school" aria-pressed="false">4. Get ready for school</button>
+    <button class="chip ex" data-ex="pizza" aria-pressed="false">5. Make a pizza</button>
+  </div>
+  <div class="scene">
+    <svg id="park" viewBox="0 0 820 450" role="img" aria-label="The big problem Launch a rocket is broken into smaller parts. A team works on the parts at the same time, then the rocket launches">
+      <defs>
+        <linearGradient id="skyP" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1B2A49"/><stop offset=".55" stop-color="#4A5D9A"/><stop offset="1" stop-color="#F2A35A"/></linearGradient>
+        <linearGradient id="bodyG" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#D8DEEA"/><stop offset=".5" stop-color="#fff"/><stop offset="1" stop-color="#B9C4D8"/></linearGradient>
+        <clipPath id="siteClip"><rect x="0" y="210" width="820" height="240"/></clipPath>
+        <linearGradient id="flameG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFF27A"/><stop offset=".5" stop-color="#F2A007"/><stop offset="1" stop-color="#C92A3B" stop-opacity="0"/></linearGradient>
+      </defs>
+      <!-- tree area -->
+      <rect width="820" height="210" fill="#fff"/>
+      <g id="lines1"></g><g id="lines2"></g>
+      <g id="level1"></g><g id="level2"></g>
+      <g id="rootG" style="transform:translate(0px,60px) scale(1);transform-origin:410px 41px">
+        <rect id="rootBox" x="280" y="18" width="260" height="46" rx="12" fill="#C92A3B" stroke="#1B2A49" stroke-width="3" style="transition:fill .5s"/>
+        <text x="410" y="48" text-anchor="middle" font-family="Trebuchet MS,sans-serif" font-weight="700" font-size="21" fill="#fff">Launch a rocket</text>
+      </g>
+      <!-- launch site -->
+      <g clip-path="url(#siteClip)">
+      <rect y="210" width="820" height="240" fill="url(#skyP)"/>
+      <g fill="#fff"><circle cx="40" cy="226" r="1.5"/><circle cx="130" cy="240" r="1.2"/><circle cx="250" cy="222" r="1.6"/><circle cx="520" cy="232" r="1.3"/><circle cx="690" cy="224" r="1.6"/><circle cx="780" cy="246" r="1.2"/><circle cx="600" cy="250" r="1"/><circle cx="330" cy="246" r="1"/></g>
+      <circle cx="760" cy="262" r="16" fill="#FFF3C4" opacity=".9"/>
+      <rect y="398" width="820" height="52" fill="#5A6B8C"/>
+      <rect y="398" width="820" height="6" fill="#3C4A6B"/>
+      <g fill="#F2C230"><path d="M0 440 h20 l-8 10 h-20z"/></g>
+      <path d="M0 444 H820" stroke="#F2C230" stroke-width="5" stroke-dasharray="20 14"/>
+
+      <!-- mission control: dish + computers -->
+      <g id="it-dish" class="pop">
+        <line x1="60" y1="400" x2="60" y2="330" stroke="#1B2A49" stroke-width="5"/>
+        <path d="M30 318 Q 60 360 92 312 Z" fill="#D8DEEA" stroke="#1B2A49" stroke-width="2.5"/>
+        <line x1="61" y1="330" x2="74" y2="302" stroke="#1B2A49" stroke-width="2.5"/><circle cx="75" cy="300" r="4" fill="#C92A3B"/>
+      </g>
+      <g id="it-comp" class="pop">
+        <rect x="120" y="372" width="104" height="10" fill="#8A5A2B" stroke="#1B2A49" stroke-width="2"/>
+        <line x1="130" y1="382" x2="130" y2="400" stroke="#1B2A49" stroke-width="4"/><line x1="214" y1="382" x2="214" y2="400" stroke="#1B2A49" stroke-width="4"/>
+        <rect x="128" y="338" width="40" height="30" rx="3" fill="#13162A" stroke="#1B2A49" stroke-width="2"/><path d="M132 360 L142 350 L150 356 L164 342" fill="none" stroke="#2BD46B" stroke-width="2"/>
+        <rect x="176" y="338" width="40" height="30" rx="3" fill="#13162A" stroke="#1B2A49" stroke-width="2"/><circle cx="196" cy="353" r="9" fill="none" stroke="#7FD3FF" stroke-width="2"/><line x1="196" y1="353" x2="203" y2="347" stroke="#7FD3FF" stroke-width="2"/>
+        <line x1="148" y1="368" x2="148" y2="372" stroke="#1B2A49" stroke-width="3"/><line x1="196" y1="368" x2="196" y2="372" stroke="#1B2A49" stroke-width="3"/>
+      </g>
+      <!-- launch pad: countdown clock + tower -->
+      <g id="it-clock" class="pop">
+        <line x1="282" y1="400" x2="282" y2="350" stroke="#1B2A49" stroke-width="5"/>
+        <rect x="246" y="314" width="72" height="38" rx="6" fill="#13162A" stroke="#F2A007" stroke-width="3"/>
+        <text id="clockText" x="282" y="341" text-anchor="middle" font-family="Consolas,Menlo,monospace" font-weight="700" font-size="20" fill="#FF4B4B">00:10</text>
+      </g>
+      <g id="it-tower" class="pop">
+        <g stroke="#C92A3B" stroke-width="4"><line x1="340" y1="400" x2="340" y2="250"/><line x1="370" y1="400" x2="370" y2="250"/><line x1="336" y1="250" x2="374" y2="250"/></g>
+        <g stroke="#C92A3B" stroke-width="2.5"><line x1="340" y1="400" x2="370" y2="370"/><line x1="370" y1="370" x2="340" y2="340"/><line x1="340" y1="340" x2="370" y2="310"/><line x1="370" y1="310" x2="340" y2="280"/><line x1="340" y1="280" x2="370" y2="250"/>
+          <line x1="340" y1="370" x2="370" y2="370"/><line x1="340" y1="340" x2="370" y2="340"/><line x1="340" y1="310" x2="370" y2="310"/><line x1="340" y1="280" x2="370" y2="280"/></g>
+        <line id="towerArm" x1="370" y1="300" x2="404" y2="300" stroke="#C92A3B" stroke-width="4"/>
+      </g>
+      <!-- launch platform -->
+      <rect x="388" y="392" width="104" height="10" fill="#3C4A6B" stroke="#1B2A49" stroke-width="2"/>
+      <!-- rocket -->
+      <g id="smoke"></g>
+      <g id="rocketFly">
+        <path id="flame" d="M426 400 Q 440 470 454 400 Z" fill="url(#flameG)" opacity="0"/>
+        <g id="it-body" class="pop">
+          <path d="M410 386 L392 404 L410 396Z" fill="#C92A3B" stroke="#1B2A49" stroke-width="2"/><path d="M470 386 L488 404 L470 396Z" fill="#C92A3B" stroke="#1B2A49" stroke-width="2"/>
+          <path d="M426 396 L420 404 H460 L454 396Z" fill="#5A6B8C" stroke="#1B2A49" stroke-width="2"/>
+          <rect x="410" y="290" width="60" height="106" rx="6" fill="url(#bodyG)" stroke="#1B2A49" stroke-width="2.5"/>
+          <circle cx="440" cy="322" r="11" fill="#7FD3FF" stroke="#1B2A49" stroke-width="2.5"/>
+          <rect x="410" y="350" width="60" height="8" fill="#1C6FD1"/>
+          <text x="440" y="382" text-anchor="middle" font-family="Trebuchet MS,sans-serif" font-weight="700" font-size="10" fill="#1B2A49" transform="rotate(-90 440 378)">Y8</text>
+        </g>
+        <g id="it-nose" class="pop"><path d="M410 292 Q 412 252 440 232 Q 468 252 470 292 Z" fill="#C92A3B" stroke="#1B2A49" stroke-width="2.5"/></g>
+      </g>
+      <!-- fuel: tanks + pipe -->
+      <g id="it-pipe" class="pop" style="transform-origin:100% 50%">
+        <path d="M594 384 H520 Q 500 384 500 372 H470" fill="none" stroke="#1B2A49" stroke-width="9"/>
+        <path d="M594 384 H520 Q 500 384 500 372 H470" fill="none" stroke="#F2A007" stroke-width="5"/>
+      </g>
+      <g id="it-tanks" class="pop">
+        <rect x="594" y="318" width="40" height="82" rx="18" fill="#D8DEEA" stroke="#1B2A49" stroke-width="2.5"/><rect x="594" y="348" width="40" height="8" fill="#11904A"/>
+        <rect x="642" y="330" width="34" height="70" rx="16" fill="#D8DEEA" stroke="#1B2A49" stroke-width="2.5"/><rect x="642" y="356" width="34" height="8" fill="#11904A"/>
+        <text x="614" y="340" text-anchor="middle" font-family="Trebuchet MS,sans-serif" font-weight="700" font-size="10" fill="#1B2A49">FUEL</text>
+      </g>
+
+      <!-- worried person -->
+      <g id="worried" class="fade on">
+        <g transform="translate(440,398)">
+          <line x1="-6" y1="-12" x2="-8" y2="2" stroke="#1B2A49" stroke-width="5" stroke-linecap="round"/><line x1="6" y1="-12" x2="8" y2="2" stroke="#1B2A49" stroke-width="5" stroke-linecap="round"/>
+          <rect x="-14" y="-46" width="28" height="36" rx="9" fill="#1C6FD1" stroke="#1B2A49" stroke-width="2.5"/>
+          <circle cx="0" cy="-58" r="13" fill="#F5C9A0" stroke="#1B2A49" stroke-width="2.5"/>
+          <path id="mouth" d="M-5 -51 Q0 -55 5 -51" fill="none" stroke="#1B2A49" stroke-width="2"/>
+          <circle cx="-4" cy="-60" r="1.6" fill="#1B2A49"/><circle cx="4" cy="-60" r="1.6" fill="#1B2A49"/>
+        </g>
+        <path d="M478 270 H770 Q778 270 778 278 V310 Q778 318 770 318 H480 L458 330 L466 318 H478 Q470 318 470 310 V278 Q470 270 478 270Z" fill="#fff" stroke="#1B2A49" stroke-width="2.5"/>
+        <text id="worryText" x="624" y="299" text-anchor="middle" font-family="Trebuchet MS,sans-serif" font-weight="700" font-size="15" fill="#1B2A49">Launch a rocket? That's way too big!</text>
+      </g>
+      <g id="workers"></g>
+      <text id="liftoff" x="600" y="270" text-anchor="middle" font-family="Trebuchet MS,sans-serif" font-weight="700" font-size="40" fill="#FFF27A" stroke="#1B2A49" stroke-width="5" paint-order="stroke" opacity="0" style="transition:opacity .3s">LIFT OFF!</text>
+      </g>
+      <g id="confetti"></g>
+    </svg>
+    <svg id="room" viewBox="0 0 820 450" role="img" aria-label="A messy bedroom. The big problem Tidy your bedroom is broken into smaller parts, and each part is tidied one at a time" hidden>
+      <rect width="820" height="210" fill="#fff"/>
+      <g id="lines1R"></g><g id="lines2R"></g>
+      <g id="level1R"></g><g id="level2R"></g>
+      <g id="rootGR" style="transform:translate(0px,60px) scale(1.25);transform-origin:410px 41px;transition:transform .8s ease">
+        <rect id="rootBoxR" x="280" y="18" width="260" height="46" rx="12" fill="#C92A3B" stroke="#1B2A49" stroke-width="3" style="transition:fill .5s"/>
+        <text x="410" y="48" text-anchor="middle" font-family="Trebuchet MS,sans-serif" font-weight="700" font-size="21" fill="#fff">Tidy your bedroom</text>
+      </g>
+      <!-- room -->
+      <rect y="210" width="820" height="240" fill="#F4E3C1"/>
+      <rect y="210" width="820" height="3" fill="#BCD3EE"/>
+      <rect y="382" width="820" height="68" fill="#C89B6D"/>
+      <g stroke="#A97C50" stroke-width="2"><line x1="0" y1="404" x2="820" y2="404"/><line x1="0" y1="428" x2="820" y2="428"/></g>
+      <!-- window + poster -->
+      <rect x="690" y="236" width="100" height="72" rx="4" fill="#BFE3FF" stroke="#1B2A49" stroke-width="3"/><line x1="740" y1="236" x2="740" y2="308" stroke="#1B2A49" stroke-width="3"/>
+      <rect x="600" y="240" width="54" height="66" rx="3" fill="#6C4AB6" stroke="#1B2A49" stroke-width="2"/><circle cx="627" cy="266" r="12" fill="#F2A007"/><text x="627" y="296" text-anchor="middle" font-family="Trebuchet MS,sans-serif" font-weight="700" font-size="10" fill="#fff">GAME ON</text>
+      <!-- bed -->
+      <rect x="30" y="318" width="14" height="66" fill="#8A5A2B" stroke="#1B2A49" stroke-width="2"/>
+      <rect x="40" y="348" width="190" height="26" rx="4" fill="#fff" stroke="#1B2A49" stroke-width="2.5"/>
+      <rect x="40" y="374" width="190" height="10" fill="#8A5A2B" stroke="#1B2A49" stroke-width="2"/>
+      <g id="duvetTidy" opacity="0" style="transition:opacity .6s"><rect x="92" y="340" width="140" height="30" rx="6" fill="#1C6FD1" stroke="#1B2A49" stroke-width="2.5"/><line x1="100" y1="348" x2="224" y2="348" stroke="#fff" stroke-width="3"/></g>
+      <!-- wardrobe -->
+      <rect x="258" y="236" width="104" height="148" rx="4" fill="#B07A45" stroke="#1B2A49" stroke-width="3"/>
+      <rect x="266" y="244" width="88" height="132" fill="#6B4A2A"/>
+      <line x1="270" y1="256" x2="350" y2="256" stroke="#D8DEEA" stroke-width="3"/>
+      <!-- drawers -->
+      <rect x="378" y="320" width="86" height="64" rx="4" fill="#B07A45" stroke="#1B2A49" stroke-width="3"/>
+      <line x1="378" y1="341" x2="464" y2="341" stroke="#1B2A49" stroke-width="2"/><line x1="378" y1="362" x2="464" y2="362" stroke="#1B2A49" stroke-width="2"/>
+      <circle cx="421" cy="331" r="3" fill="#1B2A49"/><circle cx="421" cy="352" r="3" fill="#1B2A49"/><circle cx="421" cy="373" r="3" fill="#1B2A49"/>
+      <!-- bookshelf -->
+      <rect x="482" y="250" width="100" height="134" rx="3" fill="#B07A45" stroke="#1B2A49" stroke-width="3"/>
+      <g stroke="#1B2A49" stroke-width="3"><line x1="482" y1="294" x2="582" y2="294"/><line x1="482" y1="338" x2="582" y2="338"/></g>
+      <!-- bin -->
+      <path d="M612 340 H652 L648 384 H616Z" fill="#5A6B8C" stroke="#1B2A49" stroke-width="2.5"/>
+      <!-- progress -->
+      <rect x="20" y="224" width="210" height="44" rx="10" fill="#fff" stroke="#1B2A49" stroke-width="2.5"/>
+      <text id="progText" x="34" y="242" font-family="Trebuchet MS,sans-serif" font-weight="700" font-size="13" fill="#1B2A49">Room tidy: 0%</text>
+      <rect x="34" y="249" width="182" height="11" rx="5" fill="#E3ECF7"/>
+      <rect id="progBar" x="34" y="249" width="0" height="11" rx="5" fill="#11904A" style="transition:width .5s"/>
+      <g id="items"></g>
+      <g id="kidLayer"></g><g id="carryLayer"></g>
+      <g id="bubbleR">
+        <rect x="560" y="218" width="252" height="52" rx="10" fill="#fff" stroke="#1B2A49" stroke-width="2.5"/>
+        <g transform="translate(584,258)"><circle cx="0" cy="-14" r="10" fill="#F5C9A0" stroke="#1B2A49" stroke-width="2"/><circle cx="-3" cy="-15" r="1.3" fill="#1B2A49"/><circle cx="3" cy="-15" r="1.3" fill="#1B2A49"/></g>
+        <text id="sayR" x="700" y="240" text-anchor="middle" font-family="Trebuchet MS,sans-serif" font-weight="700" font-size="14" fill="#1B2A49"></text>
+      </g>
+      <g id="sparkR"></g>
+    </svg>
+    <svg id="house" viewBox="0 0 820 450" role="img" aria-label="Building a house: the big problem is broken into smaller jobs, which are done one at a time in the right order" hidden>
+      <defs>
+        <linearGradient id="skyB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9FD3FF"/><stop offset="1" stop-color="#E2F2FF"/></linearGradient>
+        <clipPath id="roofClip"><path d="M300 290 L410 222 L520 290Z"/></clipPath>
+      </defs>
+      <rect width="820" height="210" fill="#fff"/>
+      <g id="lines1H"></g><g id="lines2H"></g>
+      <g id="level1H"></g><g id="level2H"></g>
+      <g id="rootGH" style="transform:translate(0px,60px) scale(1.25);transform-origin:410px 41px;transition:transform .8s ease">
+        <rect id="rootBoxH" x="280" y="18" width="260" height="46" rx="12" fill="#C92A3B" stroke="#1B2A49" stroke-width="3" style="transition:fill .5s"/>
+        <text x="410" y="48" text-anchor="middle" font-family="Trebuchet MS,sans-serif" font-weight="700" font-size="21" fill="#fff">Build a house</text>
+      </g>
+      <!-- site -->
+      <rect y="210" width="820" height="240" fill="url(#skyB)"/>
+      <rect y="210" width="820" height="3" fill="#BCD3EE"/>
+      <rect y="400" width="820" height="50" fill="#8A6E45"/>
+      <rect y="400" width="820" height="7" fill="#8CC65A"/>
+      <!-- blueprint -->
+      <g>
+        <rect x="650" y="226" width="150" height="104" rx="6" fill="#1C5FB0" stroke="#1B2A49" stroke-width="2.5"/>
+        <text x="725" y="246" text-anchor="middle" font-family="Trebuchet MS,sans-serif" font-weight="700" font-size="12" fill="#fff">THE PLAN</text>
+        <g fill="none" stroke="#fff" stroke-width="2"><path d="M690 290 H760 V322 H690Z"/><path d="M684 290 L725 262 L766 290"/><path d="M718 322 V302 H732 V322"/><path d="M698 298 H710 V308 H698Z"/><path d="M740 298 H752 V308 H740Z"/></g>
+      </g>
+      <!-- jobs -->
+      <rect id="hole" x="290" y="400" width="240" height="24" fill="#4A3218" style="transform-box:fill-box;transform-origin:50% 0%;transform:scaleY(0);transition:transform .9s ease"/>
+      <path id="dirt" class="pop" d="M560 400 Q 575 372 595 378 Q 612 370 626 400Z" fill="#6B4A2A" stroke="#1B2A49" stroke-width="2"/>
+      <rect id="slab" x="290" y="400" width="0" height="24" fill="#A9B4C8" stroke="#1B2A49" stroke-width="2"/>
+      <g id="bricks"></g>
+      <g id="windows">
+        <g class="pop"><rect x="342" y="314" width="42" height="36" fill="#BFE3FF" stroke="#fff" stroke-width="4"/><path d="M363 314 V350 M342 332 H384" stroke="#fff" stroke-width="3"/><rect x="342" y="314" width="42" height="36" fill="none" stroke="#1B2A49" stroke-width="2"/></g>
+        <g class="pop"><rect x="436" y="314" width="42" height="36" fill="#BFE3FF" stroke="#fff" stroke-width="4"/><path d="M457 314 V350 M436 332 H478" stroke="#fff" stroke-width="3"/><rect x="436" y="314" width="42" height="36" fill="none" stroke="#1B2A49" stroke-width="2"/></g>
+      </g>
+      <g id="tiles" clip-path="url(#roofClip)"></g>
+      <path id="frame" d="M300 290 L410 222 L520 290 Z M410 222 V290 M355 290 L410 256 L465 290" fill="none" stroke="#8A5A2B" stroke-width="5" stroke-linejoin="round" opacity="0"/>
+      <g id="door" class="pop"><rect x="394" y="352" width="32" height="48" rx="3" fill="#1C6FD1" stroke="#1B2A49" stroke-width="2.5"/><circle cx="419" cy="378" r="2.5" fill="#F2C230"/></g>
+      <g id="garden" class="pop">
+        <path d="M398 407 L426 407 L446 450 L378 450Z" fill="#D9C59C"/>
+        <g stroke="#fff" stroke-width="5" stroke-linecap="round"><line x1="230" y1="372" x2="230" y2="402"/><line x1="250" y1="372" x2="250" y2="402"/><line x1="270" y1="372" x2="270" y2="402"/><line x1="226" y1="384" x2="300" y2="384"/>
+          <line x1="550" y1="372" x2="550" y2="402"/><line x1="570" y1="372" x2="570" y2="402"/><line x1="590" y1="372" x2="590" y2="402"/><line x1="520" y1="384" x2="594" y2="384"/></g>
+        <g stroke="#1B2A49" stroke-width="1.5"><circle cx="330" cy="396" r="6" fill="#C2387A"/><circle cx="350" cy="398" r="6" fill="#F2A007"/><circle cx="470" cy="396" r="6" fill="#C92A3B"/><circle cx="490" cy="398" r="6" fill="#6C4AB6"/></g>
+      </g>
+      <!-- ladder -->
+      <g id="ladder" class="fade">
+        <g stroke="#8A5A2B" stroke-width="5" stroke-linecap="round"><line x1="528" y1="400" x2="520" y2="286"/><line x1="552" y1="400" x2="544" y2="286"/></g>
+        <g stroke="#8A5A2B" stroke-width="3"><line x1="527" y1="384" x2="551" y2="384"/><line x1="526" y1="364" x2="550" y2="364"/><line x1="524" y1="344" x2="548" y2="344"/><line x1="523" y1="324" x2="547" y2="324"/><line x1="521" y1="304" x2="545" y2="304"/></g>
+      </g>
+      <!-- builder (moves around the site) -->
+      <g id="builder" transform="translate(200,400)">
+        <g id="bInner">
+          <line id="bLeg1" x1="-6" y1="-12" x2="-8" y2="0" stroke="#1B2A49" stroke-width="5" stroke-linecap="round"/><line id="bLeg2" x1="6" y1="-12" x2="8" y2="0" stroke="#1B2A49" stroke-width="5" stroke-linecap="round"/>
+          <rect x="-14" y="-46" width="28" height="36" rx="9" fill="#1C6FD1" stroke="#1B2A49" stroke-width="2.5"/>
+          <path d="M-14 -40 H14 V-26 H-14Z" fill="#F28C1A"/><line x1="-14" y1="-33" x2="14" y2="-33" stroke="#F7F27A" stroke-width="3"/>
+          <circle cx="0" cy="-58" r="13" fill="#C58C5C" stroke="#1B2A49" stroke-width="2.5"/>
+          <path d="M-15 -62 Q0 -82 15 -62 Z" fill="#F2C230" stroke="#1B2A49" stroke-width="2"/><rect x="-17" y="-64" width="34" height="4" rx="2" fill="#F2C230" stroke="#1B2A49" stroke-width="1.5"/>
+          <path id="mouthH" d="M-5 -51 Q0 -55 5 -51" fill="none" stroke="#1B2A49" stroke-width="2"/>
+          <circle cx="-4" cy="-57" r="1.6" fill="#1B2A49"/><circle cx="4" cy="-57" r="1.6" fill="#1B2A49"/>
+          <g id="bArm"><line x1="8" y1="-40" x2="22" y2="-26" stroke="#1B2A49" stroke-width="5" stroke-linecap="round"/><g id="bTool" transform="translate(22,-26)"></g></g>
+        </g>
+      </g>
+      <g id="bubbleH">
+        <rect x="24" y="222" width="250" height="50" rx="10" fill="#fff" stroke="#1B2A49" stroke-width="2.5"/>
+        <g transform="translate(48,262)"><circle cx="0" cy="-12" r="10" fill="#C58C5C" stroke="#1B2A49" stroke-width="2"/><path d="M-11 -15 Q0 -30 11 -15Z" fill="#F2C230" stroke="#1B2A49" stroke-width="1.5"/></g>
+        <text id="sayH" x="164" y="244" text-anchor="middle" font-family="Trebuchet MS,sans-serif" font-weight="700" font-size="14" fill="#1B2A49"></text>
+      </g>
+    </svg>
+    <!-- ===== GET READY FOR SCHOOL ===== -->
+    <svg id="school" viewBox="0 0 820 450" role="img" aria-label="Getting ready for school is broken into smaller jobs, done one at a time before the bus comes" hidden>
+      <rect width="820" height="210" fill="#fff"/>
+      <g id="lines1S"></g><g id="lines2S"></g><g id="level1S"></g><g id="level2S"></g>
+      <g id="rootGS" style="transform:translate(0px,60px) scale(1.25);transform-origin:410px 41px;transition:transform .8s ease">
+        <rect id="rootBoxS" x="270" y="18" width="280" height="46" rx="12" fill="#C92A3B" stroke="#1B2A49" stroke-width="3" style="transition:fill .5s"/>
+        <text x="410" y="48" text-anchor="middle" font-family="Trebuchet MS,sans-serif" font-weight="700" font-size="21" fill="#fff">Get ready for school</text>
+      </g>
+      <!-- rooms -->
+      <rect y="210" width="250" height="240" fill="#DFF1F7"/><rect x="250" y="210" width="220" height="240" fill="#EDE6F7"/>
+      <rect x="470" y="210" width="230" height="240" fill="#FFF3DC"/><rect x="700" y="210" width="120" height="240" fill="#E8EEF7"/>
+      <rect y="210" width="820" height="3" fill="#BCD3EE"/>
+      <g stroke="#1B2A49" stroke-width="6"><line x1="250" y1="213" x2="250" y2="286"/><line x1="470" y1="213" x2="470" y2="286"/><line x1="700" y1="213" x2="700" y2="286"/></g>
+      <g font-family="Trebuchet MS,sans-serif" font-weight="700" font-size="12" fill="#51628A"><text x="125" y="292" text-anchor="middle">BATHROOM</text><text x="360" y="232" text-anchor="middle">BEDROOM</text><text x="585" y="300" text-anchor="middle">KITCHEN</text><text x="760" y="232" text-anchor="middle">HALL</text></g>
+      <rect y="410" width="820" height="40" fill="#C89B6D"/><line x1="0" y1="428" x2="820" y2="428" stroke="#A97C50" stroke-width="2"/>
+      <!-- bathroom -->
+      <rect x="62" y="306" width="36" height="34" rx="4" fill="#BFE3FF" stroke="#1B2A49" stroke-width="2.5"/>
+      <rect x="54" y="356" width="52" height="12" rx="4" fill="#fff" stroke="#1B2A49" stroke-width="2.5"/><rect x="74" y="368" width="12" height="42" fill="#fff" stroke="#1B2A49" stroke-width="2"/>
+      <g id="foam"></g>
+      <rect x="148" y="300" width="84" height="110" fill="#BFE3FF" opacity=".35" stroke="#1B2A49" stroke-width="2.5"/>
+      <path d="M190 300 V312" stroke="#5A6B8C" stroke-width="4"/><ellipse cx="190" cy="314" rx="12" ry="4" fill="#8A97B5" stroke="#1B2A49" stroke-width="1.5"/>
+      <g id="water" opacity="0" stroke="#4BA3E3" stroke-width="2.5" stroke-linecap="round"><line x1="182" y1="322" x2="178" y2="350"/><line x1="190" y1="322" x2="190" y2="356"/><line x1="198" y1="322" x2="202" y2="350"/><line x1="186" y1="360" x2="183" y2="388"/><line x1="195" y1="360" x2="198" y2="390"/></g>
+      <!-- bedroom -->
+      <rect x="276" y="286" width="62" height="124" rx="3" fill="#B07A45" stroke="#1B2A49" stroke-width="2.5"/><line x1="307" y1="290" x2="307" y2="406" stroke="#1B2A49" stroke-width="2"/>
+      <circle cx="301" cy="350" r="2.5" fill="#1B2A49"/><circle cx="313" cy="350" r="2.5" fill="#1B2A49"/>
+      <rect x="370" y="374" width="92" height="22" rx="4" fill="#fff" stroke="#1B2A49" stroke-width="2"/><rect x="398" y="368" width="64" height="22" rx="5" fill="#6C4AB6" stroke="#1B2A49" stroke-width="2"/>
+      <rect x="370" y="396" width="92" height="12" fill="#8A5A2B"/><rect x="364" y="352" width="10" height="56" fill="#8A5A2B"/>
+      <g id="floorShoes"><ellipse cx="420" cy="414" rx="9" ry="4" fill="#1B2A49"/><ellipse cx="438" cy="414" rx="9" ry="4" fill="#1B2A49"/></g>
+      <!-- kitchen -->
+      <rect x="520" y="234" width="80" height="34" rx="6" fill="#13162A" stroke="#1B2A49" stroke-width="2.5"/>
+      <text id="clockS" x="560" y="258" text-anchor="middle" font-family="Consolas,Menlo,monospace" font-weight="700" font-size="20" fill="#2BD46B">8:00</text>
+      <text x="560" y="284" text-anchor="middle" font-family="Trebuchet MS,sans-serif" font-weight="700" font-size="12" fill="#C92A3B">Bus at 8:35!</text>
+      <rect x="506" y="366" width="104" height="8" fill="#8A5A2B" stroke="#1B2A49" stroke-width="2"/><line x1="514" y1="374" x2="514" y2="410" stroke="#1B2A49" stroke-width="4"/><line x1="602" y1="374" x2="602" y2="410" stroke="#1B2A49" stroke-width="4"/>
+      <g id="bowl" class="pop"><path d="M524 352 H556 Q554 366 540 366 Q526 366 524 352Z" fill="#fff" stroke="#1B2A49" stroke-width="2"/><g fill="#F2C230"><circle cx="532" cy="351" r="2.5"/><circle cx="540" cy="350" r="2.5"/><circle cx="548" cy="351" r="2.5"/></g></g>
+      <g id="glass" class="pop"><path d="M566 344 H580 L578 366 H568Z" fill="#F2A007" stroke="#1B2A49" stroke-width="2"/></g>
+      <g id="hw"><rect x="584" y="352" width="18" height="14" fill="#fff" stroke="#1B2A49" stroke-width="1.5"/><line x1="587" y1="357" x2="599" y2="357" stroke="#8A97B5"/><line x1="587" y1="361" x2="597" y2="361" stroke="#8A97B5"/></g>
+      <rect x="630" y="296" width="58" height="114" rx="5" fill="#fff" stroke="#1B2A49" stroke-width="2.5"/><line x1="630" y1="336" x2="688" y2="336" stroke="#1B2A49" stroke-width="2"/><rect x="678" y="306" width="4" height="22" fill="#8A97B5"/><rect x="678" y="346" width="4" height="30" fill="#8A97B5"/>
+      <!-- hall -->
+      <g id="door" style="transform-box:fill-box;transform-origin:100% 50%;transition:transform .7s"><rect x="752" y="300" width="54" height="110" fill="#C92A3B" stroke="#1B2A49" stroke-width="2.5"/><circle cx="760" cy="358" r="3" fill="#F2C230"/></g>
+      <line x1="712" y1="318" x2="724" y2="318" stroke="#1B2A49" stroke-width="3"/>
+      <g id="kit"><path d="M708 320 H728 L732 352 H704Z" fill="#11904A" stroke="#1B2A49" stroke-width="2"/><text x="718" y="342" text-anchor="middle" font-family="Trebuchet MS,sans-serif" font-weight="700" font-size="8" fill="#fff">PE</text></g>
+      <g id="floorBag"><rect x="714" y="384" width="26" height="28" rx="7" fill="#1C6FD1" stroke="#1B2A49" stroke-width="2"/><rect x="719" y="394" width="16" height="10" rx="3" fill="#7FD3FF"/></g>
+      <g id="kidLayerS"></g><g id="carryS"></g>
+      <g id="bubS">
+        <rect x="14" y="220" width="236" height="52" rx="10" fill="#fff" stroke="#1B2A49" stroke-width="2.5"/>
+        <g transform="translate(36,260)"><circle cx="0" cy="-14" r="10" fill="#E0A878" stroke="#1B2A49" stroke-width="2"/><circle cx="-3" cy="-15" r="1.3" fill="#1B2A49"/><circle cx="3" cy="-15" r="1.3" fill="#1B2A49"/></g>
+        <text id="sayS" x="144" y="242" text-anchor="middle" font-family="Trebuchet MS,sans-serif" font-weight="700" font-size="13" fill="#1B2A49"></text>
+      </g>
+    </svg>
+
+    <!-- ===== MAKE A PIZZA ===== -->
+    <svg id="pizza" viewBox="0 0 820 450" role="img" aria-label="Making a pizza is broken into smaller jobs: dough, sauce, toppings and cooking" hidden>
+      <rect width="820" height="210" fill="#fff"/>
+      <g id="lines1Z"></g><g id="lines2Z"></g><g id="level1Z"></g><g id="level2Z"></g>
+      <g id="rootGZ" style="transform:translate(0px,60px) scale(1.25);transform-origin:410px 41px;transition:transform .8s ease">
+        <rect id="rootBoxZ" x="280" y="18" width="260" height="46" rx="12" fill="#C92A3B" stroke="#1B2A49" stroke-width="3" style="transition:fill .5s"/>
+        <text x="410" y="48" text-anchor="middle" font-family="Trebuchet MS,sans-serif" font-weight="700" font-size="21" fill="#fff">Make a pizza</text>
+      </g>
+      <rect y="210" width="820" height="240" fill="#FFF3DC"/><rect y="210" width="820" height="3" fill="#BCD3EE"/>
+      <g stroke="#E8D5B0" stroke-width="1.5"><line x1="0" y1="250" x2="820" y2="250"/><line x1="0" y1="290" x2="820" y2="290"/><line x1="0" y1="330" x2="820" y2="330"/></g>
+      <!-- oven -->
+      <rect x="720" y="252" width="92" height="160" rx="6" fill="#D8DEEA" stroke="#1B2A49" stroke-width="2.5"/>
+      <rect id="ovenWin" x="732" y="300" width="68" height="44" rx="4" fill="#2A3558" stroke="#1B2A49" stroke-width="2" class="hl"/>
+      <rect x="732" y="262" width="68" height="22" rx="3" fill="#13162A"/><text id="ovenT" x="766" y="278" text-anchor="middle" font-family="Consolas,Menlo,monospace" font-weight="700" font-size="13" fill="#FF4B4B">OFF</text>
+      <!-- chef behind counter -->
+      <g id="chefLayer"></g>
+      <rect y="372" width="720" height="78" fill="#B07A45"/><rect y="366" width="720" height="10" fill="#D8B48A" stroke="#1B2A49" stroke-width="2"/>
+      <!-- counter items -->
+      <g><path d="M300 366 L306 330 H330 L336 366Z" fill="#F4E9D8" stroke="#1B2A49" stroke-width="2"/><text x="318" y="356" text-anchor="middle" font-family="Trebuchet MS,sans-serif" font-weight="700" font-size="9" fill="#1B2A49">FLOUR</text></g>
+      <g><path d="M346 344 H398 Q396 366 372 366 Q348 366 346 344Z" fill="#fff" stroke="#1B2A49" stroke-width="2.5"/></g>
+      <ellipse id="doughBall" cx="372" cy="344" rx="0" ry="0" fill="#F4D9A6" stroke="#1B2A49" stroke-width="1.5"/>
+      <rect x="470" y="358" width="150" height="10" rx="3" fill="#C89B6D" stroke="#1B2A49" stroke-width="2"/>
+      <g id="pizzaG">
+        <ellipse id="base" cx="545" cy="354" rx="0" ry="0" fill="#F4D9A6" stroke="#1B2A49" stroke-width="2"/>
+        <ellipse id="sauce" cx="545" cy="353" rx="0" ry="0" fill="#D9452B"/>
+        <g id="cheese"></g><g id="pepp"></g>
+      </g>
+      <g id="tomatoes"><circle cx="656" cy="356" r="9" fill="#E0412A" stroke="#1B2A49" stroke-width="2"/><circle cx="676" cy="358" r="8" fill="#E0412A" stroke="#1B2A49" stroke-width="2"/><path d="M653 347 l3 3 l3 -3" stroke="#11904A" stroke-width="2" fill="none"/></g>
+      <g id="chopped"></g>
+      <g id="steamZ"></g>
+      <g id="bubZ">
+        <rect x="14" y="220" width="256" height="52" rx="10" fill="#fff" stroke="#1B2A49" stroke-width="2.5"/>
+        <g transform="translate(36,262)"><circle cx="0" cy="-14" r="10" fill="#F5C9A0" stroke="#1B2A49" stroke-width="2"/><rect x="-9" y="-32" width="18" height="9" rx="3" fill="#fff" stroke="#1B2A49" stroke-width="1.5"/></g>
+        <text id="sayZ" x="154" y="242" text-anchor="middle" font-family="Trebuchet MS,sans-serif" font-weight="700" font-size="13" fill="#1B2A49"></text>
+      </g>
+    </svg>
+  </div>
+  <p class="caption" id="caption" aria-live="polite"></p>
+  <div class="controls"><button class="btn" id="mainBtn">Break it down</button><button class="btn" id="mainBtnR" hidden>Try it all at once</button><button class="btn" id="mainBtnH" hidden>Break it down</button><button class="btn" id="mainBtnS" hidden>Break it down</button><button class="btn" id="mainBtnZ" hidden>Break it down</button></div>
+  <div class="def-box"><b>Decomposition</b> means breaking a big problem into smaller parts. Each part is easier to solve. Then we put the parts together.</div>
+</section>
+
+<!-- ================= SORT ================= -->
+<section id="sort" class="screen">
+  <div class="top">
+    <button class="btn light" data-go="home">Back</button>
+    <h2>Sort it: break it down</h2>
+    <button class="btn light fsBtn" data-fs="sort">Full screen</button>
+    <button class="btn" data-go="quiz">Next: Quiz</button>
+  </div>
+  <div class="chips" id="scenChips" role="group" aria-label="Choose a big problem"></div>
+  <div class="bigprob" id="bigProb"></div>
+  <div class="branches"><svg viewBox="0 0 400 28" preserveAspectRatio="none" aria-hidden="true"><g stroke="#1B2A49" stroke-width="2" fill="none" vector-effect="non-scaling-stroke"><path d="M200 0 V12 M50 12 H350 M50 12 V28 M150 12 V28 M250 12 V28 M350 12 V28" vector-effect="non-scaling-stroke"/></g></svg></div>
+  <div class="bins" id="bins"></div>
+  <p style="text-align:center;margin:1rem 0 0;font-weight:700;color:var(--muted)">Click a job, then click the part it belongs to.</p>
+  <div class="pool" id="pool"></div>
+  <div class="sortfb n" id="sortFb" aria-live="polite"></div>
+</section>
+
+<!-- ================= QUIZ ================= -->
+<section id="quiz" class="screen">
+  <div class="top">
+    <button class="btn light" data-go="home">Back</button>
+    <h2>Quiz</h2>
+    <button class="btn light" data-go="watch">Watch again</button>
+  </div>
+  <div class="card" id="quizBody"></div>
+</section>
+
+<script>
+const $=s=>document.querySelector(s);
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+const NS="http://www.w3.org/2000/svg";
+function el(tag,attrs,parent){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e}
+const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+
+/* ---------- people that walk and work ---------- */
+const TOOL_SVG={
+  none:'',
+  hammer:'<line x1="0" y1="2" x2="6" y2="-14" stroke="#8A5A2B" stroke-width="3" stroke-linecap="round"/><rect x="0" y="-20" width="14" height="7" rx="1.5" fill="#5A6B8C" stroke="#1B2A49" stroke-width="1.5" transform="rotate(20 7 -16)"/>',
+  brush:'<line x1="0" y1="2" x2="4" y2="-12" stroke="#8A5A2B" stroke-width="3" stroke-linecap="round"/><rect x="0" y="-20" width="9" height="9" rx="2" fill="#F2A007" stroke="#1B2A49" stroke-width="1.5"/>',
+};
+function makePerson2(parent,o){
+  const g=el("g",{},parent),inner=el("g",{},g);
+  const l1=el("line",{x1:-6,y1:-12,x2:-8,y2:0,stroke:"#1B2A49","stroke-width":5,"stroke-linecap":"round"},inner);
+  const l2=el("line",{x1:6,y1:-12,x2:8,y2:0,stroke:"#1B2A49","stroke-width":5,"stroke-linecap":"round"},inner);
+  el("rect",{x:-14,y:-46,width:28,height:36,rx:9,fill:o.color,stroke:"#1B2A49","stroke-width":2.5},inner);
+  el("circle",{cx:0,cy:-58,r:13,fill:o.skin||"#F5C9A0",stroke:"#1B2A49","stroke-width":2.5},inner);
+  if(o.hat){el("path",{d:"M-15 -62 Q0 -82 15 -62 Z",fill:"#F2C230",stroke:"#1B2A49","stroke-width":2},inner);el("rect",{x:-17,y:-64,width:34,height:4,rx:2,fill:"#F2C230",stroke:"#1B2A49","stroke-width":1.5},inner)}
+  const mouth=el("path",{d:o.smile?"M-5 -53 Q0 -48 5 -53":"M-5 -51 Q0 -55 5 -51",fill:"none",stroke:"#1B2A49","stroke-width":2},inner);if(o.mouthId)mouth.id=o.mouthId;
+  el("circle",{cx:-4,cy:-58,r:1.6,fill:"#1B2A49"},inner);el("circle",{cx:4,cy:-58,r:1.6,fill:"#1B2A49"},inner);
+  const arm=el("g",{},inner);el("line",{x1:8,y1:-40,x2:22,y2:-26,stroke:"#1B2A49","stroke-width":5,"stroke-linecap":"round"},arm);
+  const tool=el("g",{transform:"translate(22,-26)"},arm);
+  if(o.tag){el("rect",{x:-22,y:-104,width:44,height:22,rx:7,fill:"#fff",stroke:o.color,"stroke-width":2.5},g);
+    const t=el("text",{x:0,y:-88,"text-anchor":"middle","font-family":"Trebuchet MS,sans-serif","font-weight":700,"font-size":13,fill:"#1B2A49"},g);t.textContent=o.tag}
+  const p={g,inner,l1,l2,arm,tool,mouth,x:0,y:0,carry:[]};return p;
+}
+function place2(p,x,y,ph){p.x=x;p.y=y;p.g.setAttribute("transform",`translate(${x.toFixed(1)},${y.toFixed(1)})`);
+  const sw=Math.sin(ph||0)*7;p.l1.setAttribute("x2",-8+sw);p.l2.setAttribute("x2",8-sw);
+  p.inner.setAttribute("transform",`translate(0,${(-Math.abs(Math.sin(ph||0))*2).toFixed(1)})`);
+  p.carry.forEach((c,i)=>c.setAttribute("transform",`translate(${(x+4).toFixed(1)},${(y-36-i*9).toFixed(1)}) rotate(0)`))}
+async function walk2(p,x,y=p.y,speed=200){const sx=p.x,sy=p.y,d=Math.hypot(x-sx,y-sy);if(d<1)return;
+  await frames(Math.max(200,d/speed*1000),k=>place2(p,sx+(x-sx)*k,sy+(y-sy)*k,k*d/10));place2(p,x,y,0)}
+async function work2(p,ms){await frames(ms,k=>p.arm.setAttribute("transform",`rotate(${(Math.sin(k*ms/90)*-35).toFixed(1)} 8 -40)`));p.arm.removeAttribute("transform")}
+function tool2(p,t){p.tool.innerHTML=TOOL_SVG[t]||""}
+
+/* screens + full screen */
+function go(id){if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen();document.querySelectorAll("#home,.screen").forEach(s=>s.classList.toggle("show",s.id===id));window.scrollTo(0,0)}
+document.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>go(b.dataset.go));
+const fsOK=document.fullscreenEnabled||document.webkitFullscreenEnabled;
+document.querySelectorAll(".fsBtn").forEach(b=>{
+  if(!fsOK){b.hidden=true;return}
+  b.onclick=()=>{
+    if(document.fullscreenElement||document.webkitFullscreenElement){(document.exitFullscreen||document.webkitExitFullscreen).call(document);return}
+    const a=$("#"+b.dataset.fs),req=a.requestFullscreen||a.webkitRequestFullscreen;try{const r=req.call(a);if(r&&r.catch)r.catch(()=>{})}catch(e){}
+  };
+});
+document.addEventListener("fullscreenchange",()=>document.querySelectorAll(".fsBtn").forEach(b=>b.textContent=document.fullscreenElement?"Exit full screen":"Full screen"));
+
+/* ================= WATCH ================= */
+const TREE=[
+  {name:"Control room",who:"Leo",color:"#6C4AB6",x:110,leaves:[["Dish","dish"],["Computers","comp"]]},
+  {name:"Launch pad",who:"Ava",color:"#E07A1F",x:310,leaves:[["Clock","clock"],["Tower","tower"]]},
+  {name:"Rocket",who:"Sam",color:"#1C6FD1",x:510,leaves:[["Body","body"],["Nose cone","nose"]]},
+  {name:"Fuel",who:"Mia",color:"#11904A",x:710,leaves:[["Fuel tanks","tanks"],["Fuel pipe","pipe"]]},
+];
+let stage=0,busy=false,workers=[];
+const SPOT={dish:84,comp:172,clock:300,tower:392,body:470,nose:500,tanks:690,pipe:540};
+const l1Text=[],leafBoxes=[];
+function growLine(parent,d){
+  const p=el("path",{d,fill:"none",stroke:"#1B2A49","stroke-width":2.5,class:"grow"},parent);
+  const L=p.getTotalLength();p.style.strokeDasharray=L;p.style.strokeDashoffset=L;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>p.style.strokeDashoffset=0));return p;
+}
+function buildTree(){
+  ["lines1","lines2","level1","level2","confetti"].forEach(id=>$("#"+id).innerHTML="");l1Text.length=0;leafBoxes.length=0;
+  TREE.forEach((b,i)=>{
+    const g=el("g",{class:"pop",style:"transform-origin:50% 0%"},$("#level1"));
+    el("rect",{class:"l1box",x:b.x-85,y:96,width:170,height:40,rx:10,fill:b.color,stroke:"#1B2A49","stroke-width":2.5},g);
+    const t=el("text",{x:b.x,y:122,"text-anchor":"middle","font-family":"Trebuchet MS,sans-serif","font-weight":700,"font-size":17,fill:"#fff"},g);t.textContent=b.name;
+    l1Text.push(t);b.g=g;
+    b.leaves.forEach((lf,j)=>{
+      const lx=b.x+(j?46:-46);
+      const lg=el("g",{class:"pop",style:"transform-origin:50% 0%"},$("#level2"));
+      const r=el("rect",{class:"leafbox",x:lx-43,y:164,width:86,height:34,rx:8,fill:"#fff",stroke:b.color,"stroke-width":2.5},lg);
+      const tt=el("text",{x:lx,y:186,"text-anchor":"middle","font-family":"Trebuchet MS,sans-serif","font-weight":700,"font-size":13,fill:"#1B2A49"},lg);tt.textContent=lf[0];
+      leafBoxes.push({g:lg,r,t:tt,item:lf[1],label:lf[0],branch:i,lx});
+    });
+  });
+}
+function caption(html,c){const e=$("#caption");e.innerHTML=html;e.className="caption "+(c||"")}
+function resetWatch(){
+  stage=0;buildTree();$("#workers").innerHTML="";workers=[];
+  $("#rootG").style.transform="translate(0px,60px) scale(1.25)";$("#rootBox").setAttribute("fill","#C92A3B");
+  document.querySelectorAll("#park .pop[id^='it-']").forEach(e=>e.classList.remove("on"));
+  $("#rocketFly").removeAttribute("transform");$("#flame").setAttribute("opacity",0);$("#smoke").innerHTML="";$("#liftoff").setAttribute("opacity",0);$("#clockText").textContent="00:10";
+  $("#worried").classList.add("on");$("#worryText").textContent="Launch a rocket? That's way too big!";$("#mouth").setAttribute("d","M-5 -51 Q0 -55 5 -51");
+  caption("Here's a <b>big problem</b>: launch a rocket into space! Where would you even start?");
+  $("#mainBtn").textContent="Break it down";$("#mainBtn").disabled=false;
+}
+async function confetti(){
+  const g=$("#confetti"),cols=["#F2A007","#11904A","#1C6FD1","#C92A3B","#6C4AB6"],bits=[];
+  for(let i=0;i<50;i++)bits.push({e:el("rect",{width:8,height:12,fill:cols[i%5]},g),x:Math.random()*820,y:200-Math.random()*60,vy:2+Math.random()*3,r:Math.random()*360});
+  await new Promise(res=>{let t0=null;function f(t){if(t0===null)t0=t;bits.forEach(b=>{b.y+=b.vy;b.r+=6;b.e.setAttribute("transform",`translate(${b.x},${b.y}) rotate(${b.r})`)});if(t-t0<2400)requestAnimationFrame(f);else res()}requestAnimationFrame(f)});
+  g.innerHTML="";
+}
+$("#mainBtn").onclick=async()=>{
+  if(busy)return;busy=true;lockEx(true);const btn=$("#mainBtn");btn.disabled=true;
+  if(stage===0){
+    $("#rootG").style.transform="translate(0px,0px) scale(1)";await wait(700);
+    TREE.forEach(b=>growLine($("#lines1"),`M410 64 V80 H${b.x} V96`));await wait(500);
+    for(const b of TREE){b.g.classList.add("on");await wait(250)}
+    $("#worryText").textContent="Four smaller jobs. That's better!";
+    caption("<b>Decomposition:</b> break the big problem into smaller parts.");
+    btn.textContent="Break it down more";stage=1;
+  }else if(stage===1){
+    TREE.forEach(b=>b.leaves.forEach((_,j)=>growLine($("#lines2"),`M${b.x} 136 V150 H${b.x+(j?46:-46)} V164`)));await wait(500);
+    for(const lf of leafBoxes){lf.g.classList.add("on");await wait(140)}
+    $("#worryText").textContent="Now each job is small enough to do!";$("#mouth").setAttribute("d","M-5 -53 Q0 -48 5 -53");
+    caption("Some parts can be broken down <b>even more</b>, until each one is small enough to solve.");
+    btn.textContent="Share out the jobs";stage=2;
+  }else if(stage===2){
+    TREE.forEach((b,i)=>{l1Text[i].textContent=`${b.name} (${b.who})`;l1Text[i].setAttribute("font-size",l1Text[i].textContent.length>16?14.5:17)});
+    $("#worried").classList.remove("on");
+    workers=TREE.map(b=>{const w=makePerson2($("#workers"),{color:b.color,hat:true,smile:true,tag:b.who,skin:["#F5C9A0","#C58C5C","#E0A878","#8D5A3B"][TREE.indexOf(b)]});place2(w,b.x,412,0);tool2(w,"hammer");return w});
+    caption("Different people can work on <b>different parts at the same time</b>: Leo sets up the control room, Ava builds the launch pad, Sam builds the rocket and Mia sorts out the fuel.");
+    btn.textContent="Solve the parts";stage=3;
+  }else if(stage===3){
+    caption("Everyone works on their own part <b>at the same time</b>...","t");
+    await Promise.all(TREE.map(async(b,i)=>{
+      const w=workers[i];await wait(i*150);
+      for(const lf of leafBoxes.filter(l=>l.branch===i)){
+        lf.r.setAttribute("fill","#FFE08A");
+        await walk2(w,SPOT[lf.item],412,170);
+        await work2(w,1100);
+        $("#it-"+lf.item).classList.add("on");
+        lf.r.setAttribute("fill","#DCF4E5");lf.t.textContent="✓ "+lf.label;lf.t.setAttribute("font-size",lf.label.length>9?11.5:13);
+        await wait(250);
+      }
+    }));
+    caption("Every part is ready. Now put them all together...");await wait(1200);
+    workers.forEach(w=>tool2(w,"none"));
+    await Promise.all(workers.map((w,i)=>walk2(w,[60,180,620,760][i],412,200)));
+    for(const n of [3,2,1]){$("#clockText").textContent="00:0"+n;caption(`${n}...`,"t");await wait(800)}
+    $("#clockText").textContent="00:00";$("#flame").setAttribute("opacity",1);$("#liftoff").setAttribute("opacity",1);
+    caption("LIFT OFF!","t");
+    const puffs=[];for(let i=0;i<14;i++)puffs.push({e:el("circle",{cx:440,cy:402,r:6,fill:"#E3ECF7",opacity:.9},$("#smoke")),dx:(Math.random()-.5)*260,r:14+Math.random()*16});
+    await frames(2600,k=>{const e=k*k;$("#rocketFly").setAttribute("transform",`translate(0,${(-e*330).toFixed(1)})`);
+      $("#flame").setAttribute("transform",`translate(0,0) scale(1,${(1+Math.sin(k*60)*.15).toFixed(2)})`);
+      puffs.forEach(p=>{p.e.setAttribute("cx",440+p.dx*Math.min(1,k*1.6));p.e.setAttribute("cy",402-Math.min(1,k*2)*10);p.e.setAttribute("r",6+p.r*Math.min(1,k*2));p.e.setAttribute("opacity",(.9*(1-k*.6)).toFixed(2))})});
+    $("#rootBox").setAttribute("fill","#11904A");
+    frames(800,k=>workers.forEach(w=>place2(w,w.x,412-Math.abs(Math.sin(k*Math.PI*2))*22,0)));
+    caption("Mission complete! Break it down, solve the small parts as a team, then put them together.","t");
+    stage=4;confetti();btn.textContent="Start again";
+  }else{resetWatch();busy=false;lockEx(false);return}
+  btn.disabled=false;busy=false;lockEx(false);
+};
+resetWatch();
+function lockEx(on){document.querySelectorAll(".ex").forEach(b=>b.disabled=on)}
+function setEx(ex){
+  if(busy)return;
+  document.querySelectorAll(".ex").forEach(b=>b.setAttribute("aria-pressed",b.dataset.ex===ex));
+  const M={park:["park","mainBtn","Launch a rocket",()=>resetWatch()],room:["room","mainBtnR","Tidy your bedroom",()=>resetRoom()],house:["house","mainBtnH","Build a house",()=>resetHouse()],
+    school:["school","mainBtnS","Get ready for school",()=>SCHOOL.reset()],pizza:["pizza","mainBtnZ","Make a pizza",()=>PIZZA.reset()]};
+  for(const k in M){$("#"+M[k][0]).toggleAttribute("hidden",k!==ex);$("#"+M[k][1]).hidden=k!==ex}
+  $("#watchTitle").textContent=M[ex][2];M[ex][3]();
+}
+document.querySelectorAll(".ex").forEach(b=>b.onclick=()=>setEx(b.dataset.ex));
+/* ================= WATCH 2: TIDY BEDROOM ================= */
+const TREE_R=[
+  {name:"Clothes",color:"#1C6FD1",x:110,leaves:[["Shirts","shirt"],["Socks","sock"]]},
+  {name:"Books",color:"#E07A1F",x:310,leaves:[["School books","book"],["Comics","comic"]]},
+  {name:"Rubbish",color:"#6C4AB6",x:510,leaves:[["Crisp packets","crisp"],["Bottles","bottle"]]},
+  {name:"Bed",color:"#11904A",x:710,leaves:[["Pillow","pillow"],["Duvet","duvet"]]},
+];
+/* each item: kind, start x,y,rotation, destination x,y,rotation, and whether it vanishes into something */
+const ITEMS=[
+  ["shirt",128,418,-20,290,276,0,false],["shirt",318,428,25,330,276,0,false],
+  ["sock",204,432,40,421,331,0,true],["sock",436,424,-30,421,331,0,true],["sock",566,438,70,421,331,0,true],
+  ["book",262,426,80,498,276,0,false],["book",470,430,-75,514,276,0,false],
+  ["comic",86,428,30,540,320,0,false],["comic",624,432,-40,560,320,0,false],
+  ["crisp",352,436,25,632,340,0,true],["crisp",672,420,-20,632,340,0,true],
+  ["bottle",44,424,90,632,340,0,true],["bottle",540,418,-80,632,340,0,true],
+  ["pillow",160,420,-15,62,340,0,false],
+  ["duvet",160,346,0,160,346,0,true],
+];
+const COL={book:["#C92A3B","#1C6FD1"],comic:["#F2A007","#11904A"]};
+let stageR=0,kid=null;const l1TextR=[],leafBoxesR=[];let itemEls=[];
+function drawItem(kind,i){
+  const g=el("g",{},$("#items"));
+  if(kind==="shirt")el("path",{d:"M-15 -10 L-7 -14 Q0 -9 7 -14 L15 -10 L20 -2 L13 1 L12 14 H-12 L-13 1 L-20 -2Z",fill:i%2?"#11904A":"#F2A007",stroke:"#1B2A49","stroke-width":2},g);
+  if(kind==="sock")el("path",{d:"M-4 -10 H4 V4 L10 6 Q12 10 8 11 L-4 10Z",fill:"#fff",stroke:"#1B2A49","stroke-width":2},g);
+  if(kind==="book"){el("rect",{x:-7,y:-14,width:14,height:28,rx:2,fill:COL.book[i%2],stroke:"#1B2A49","stroke-width":2},g);el("line",{x1:-3,y1:-8,x2:3,y2:-8,stroke:"#fff","stroke-width":2},g)}
+  if(kind==="comic"){el("rect",{x:-9,y:-12,width:18,height:24,rx:2,fill:COL.comic[i%2],stroke:"#1B2A49","stroke-width":2},g);el("circle",{cx:0,cy:-2,r:5,fill:"#fff"},g)}
+  if(kind==="crisp")el("path",{d:"M-8 -11 L-5 -13 L-2 -11 L1 -13 L4 -11 L8 -13 V11 L5 13 L2 11 L-1 13 L-4 11 L-8 13Z",fill:i%2?"#C92A3B":"#F2C230",stroke:"#1B2A49","stroke-width":2},g);
+  if(kind==="bottle")el("path",{d:"M-2 -13 H2 V-8 Q6 -6 6 -2 V12 H-6 V-2 Q-6 -6 -2 -8Z",fill:"#7FD3FF",stroke:"#1B2A49","stroke-width":2},g);
+  if(kind==="pillow")el("rect",{x:-20,y:-8,width:40,height:16,rx:7,fill:"#fff",stroke:"#1B2A49","stroke-width":2},g);
+  if(kind==="duvet")el("path",{d:"M-70 6 Q-60 -18 -30 -6 Q-10 -24 10 -4 Q40 -20 70 2 L66 16 Q30 24 0 14 Q-40 26 -66 16Z",fill:"#1C6FD1",stroke:"#1B2A49","stroke-width":2.5},g);
+  return g;
+}
+function setT(g,x,y,r){g.setAttribute("transform",`translate(${x.toFixed(1)},${y.toFixed(1)}) rotate(${r.toFixed(1)})`)}
+function placeItems(){
+  $("#items").innerHTML="";itemEls=ITEMS.map((it,i)=>{const g=drawItem(it[0],i);setT(g,it[1],it[2],it[3]);g.style.transition="opacity .4s";return{g,it}});
+}
+function buildTreeR(){
+  ["lines1R","lines2R","level1R","level2R","sparkR"].forEach(id=>$("#"+id).innerHTML="");l1TextR.length=0;leafBoxesR.length=0;
+  TREE_R.forEach((b,i)=>{
+    const g=el("g",{class:"pop",style:"transform-origin:50% 0%"},$("#level1R"));
+    el("rect",{x:b.x-85,y:96,width:170,height:40,rx:10,fill:b.color,stroke:"#1B2A49","stroke-width":2.5},g);
+    const t=el("text",{x:b.x,y:122,"text-anchor":"middle","font-family":"Trebuchet MS,sans-serif","font-weight":700,"font-size":17,fill:"#fff"},g);t.textContent=b.name;
+    l1TextR.push(t);b.g=g;
+    b.leaves.forEach((lf,j)=>{
+      const lx=b.x+(j?46:-46);
+      const lg=el("g",{class:"pop",style:"transform-origin:50% 0%"},$("#level2R"));
+      const r=el("rect",{class:"leafbox",x:lx-43,y:164,width:86,height:34,rx:8,fill:"#fff",stroke:b.color,"stroke-width":2.5},lg);
+      const tt=el("text",{x:lx,y:186,"text-anchor":"middle","font-family":"Trebuchet MS,sans-serif","font-weight":700,"font-size":lf[0].length>10?11.5:13,fill:"#1B2A49"},lg);tt.textContent=lf[0];
+      leafBoxesR.push({g:lg,r,t:tt,kind:lf[1],label:lf[0]});
+    });
+  });
+}
+function sayR(t){const e=$("#sayR");e.innerHTML="";
+  let a=t,b="";if(t.length>24){const w=t.split(" ");a="";while(w.length&&(a+" "+w[0]).trim().length<=24)a=(a+" "+w.shift()).trim();b=w.join(" ")}
+  el("tspan",{x:700,dy:b?0:8},e).textContent=a;if(b)el("tspan",{x:700,dy:18},e).textContent=b}
+function setProgress(p){$("#progBar").setAttribute("width",182*p);$("#progText").textContent=`Room tidy: ${Math.round(p*100)}%`}
+function resetRoom(){
+  stageR=0;buildTreeR();placeItems();$("#kidLayer").innerHTML="";$("#carryLayer").innerHTML="";
+  kid=makePerson2($("#kidLayer"),{color:"#C2387A",mouthId:"mouthR"});place2(kid,740,402,0);$("#duvetTidy").setAttribute("opacity",0);
+  $("#rootGR").style.transform="translate(0px,60px) scale(1.25)";$("#rootBoxR").setAttribute("fill","#C92A3B");
+  setProgress(0);$("#mouthR").setAttribute("d","M-5 -51 Q0 -55 5 -51");sayR("My room is a disaster!");
+  caption("Big problem: <b>tidy your bedroom</b>. It's a total mess! Let's try doing it all at once...");
+  $("#mainBtnR").textContent="Try it all at once";$("#mainBtnR").disabled=false;
+}
+function frames(dur,fn){return new Promise(res=>{let t0=null;function f(t){if(t0===null)t0=t;const k=Math.min(1,(t-t0)/dur);fn(k);if(k<1)requestAnimationFrame(f);else res()}requestAnimationFrame(f)})}
+async function chaos(){
+  const seeds=itemEls.map(()=>[Math.random()*6.28,Math.random()*6.28,(Math.random()-.5)*2]);
+  await frames(2600,k=>itemEls.forEach((o,i)=>{if(o.it[0]==="duvet")return;const s=seeds[i],a=Math.sin(k*Math.PI)*1;
+    setT(o.g,o.it[1]+Math.sin(k*30+s[0])*18*a,o.it[2]+Math.cos(k*26+s[1])*12*a,o.it[3]+s[2]*360*k)}));
+  itemEls.forEach(o=>setT(o.g,o.it[1],o.it[2],o.it[3]+(o.it[0]==="duvet"?0:0)));
+}
+const STAND={shirt:310,sock:421,book:520,comic:540,crisp:600,bottle:600,pillow:110,duvet:170};
+async function tidy(kind){
+  const list=itemEls.filter(o=>o.it[0]===kind);
+  if(kind==="duvet"){await walk2(kid,STAND.duvet,402,260);tool2(kid,"none");await work2(kid,900);list.forEach(o=>o.g.style.opacity=0);$("#duvetTidy").setAttribute("opacity",1);await wait(400);return}
+  // collect each item
+  const sorted=list.slice().sort((a,b)=>Math.abs(a.it[1]-kid.x)-Math.abs(b.it[1]-kid.x));
+  for(const o of sorted){
+    await walk2(kid,o.it[1],402,280);
+    const sx=o.it[1],sy=o.it[2],tx=kid.x+4,ty=kid.y-36-kid.carry.length*9;
+    $("#carryLayer").appendChild(o.g);
+    await frames(280,k=>setT(o.g,sx+(tx-sx)*k,sy+(ty-sy)*k-Math.sin(k*Math.PI)*20,o.it[3]*(1-k)));
+    kid.carry.push(o.g);place2(kid,kid.x,kid.y,0);
+  }
+  // take them to where they belong
+  await walk2(kid,STAND[kind],402,240);
+  const held=kid.carry.slice();kid.carry=[];
+  await Promise.all(held.map((g,n)=>{const o=itemEls.find(x=>x.g===g),it=o.it;const m=g.getAttribute("transform").match(/translate\(([-\d.]+),([-\d.]+)\)/),sx=+m[1],sy=+m[2];
+    return wait(n*150).then(()=>frames(600,k=>{const e=(1-Math.cos(k*Math.PI))/2;setT(g,sx+(it[4]-sx)*e,sy+(it[5]-sy)*e-Math.sin(k*Math.PI)*30,it[6]*e)})).then(()=>{if(it[7])g.style.opacity=0})}));
+}
+$("#mainBtnR").onclick=async()=>{
+  if(busy)return;busy=true;lockEx(true);const btn=$("#mainBtnR");btn.disabled=true;
+  if(stageR===0){
+    sayR("Argh! Where do I even start?!");caption("Trying to do everything at once is confusing. Nothing actually gets done!");
+    await chaos();sayR("This is too much...");btn.textContent="Break it down";stageR=1;
+  }else if(stageR===1){
+    $("#rootGR").style.transform="translate(0px,0px) scale(1)";await wait(700);
+    TREE_R.forEach(b=>growLine($("#lines1R"),`M410 64 V80 H${b.x} V96`));await wait(500);
+    for(const b of TREE_R){b.g.classList.add("on");await wait(250)}
+    sayR("Four smaller jobs. I can do that!");$("#mouthR").setAttribute("d","M-5 -53 Q0 -48 5 -53");
+    caption("<b>Decomposition:</b> break the big problem into smaller parts: clothes, books, rubbish and the bed.");
+    btn.textContent="Break it down more";stageR=2;
+  }else if(stageR===2){
+    TREE_R.forEach(b=>b.leaves.forEach((_,j)=>growLine($("#lines2R"),`M${b.x} 136 V150 H${b.x+(j?46:-46)} V164`)));await wait(500);
+    for(const lf of leafBoxesR){lf.g.classList.add("on");await wait(140)}
+    sayR("Now every job is tiny!");
+    caption("Break the parts down <b>even more</b>. Each job is now so small it's easy.");
+    btn.textContent="Do one part at a time";stageR=3;
+  }else if(stageR===3){
+    for(let i=0;i<leafBoxesR.length;i++){
+      const lf=leafBoxesR[i];lf.r.setAttribute("fill","#FFE08A");
+      caption(`Part ${i+1} of ${leafBoxesR.length}: <b>${lf.label}</b>`,"t");sayR(`Just the ${lf.label.toLowerCase()} for now...`);
+      await tidy(lf.kind);
+      lf.r.setAttribute("fill","#DCF4E5");lf.t.textContent="✓ "+lf.label;lf.t.setAttribute("font-size",lf.label.length>9?11:13);
+      setProgress((i+1)/leafBoxesR.length);await wait(250);
+    }
+    $("#rootBoxR").setAttribute("fill","#11904A");sayR("Done! That was easier than I thought!");
+    caption("Room tidy! Even working on your own, small parts are easier to do, and you can <b>see your progress</b>.","t");
+    btn.textContent="Start again";stageR=4;
+  }else{resetRoom();busy=false;lockEx(false);return}
+  btn.disabled=false;busy=false;lockEx(false);
+};
+
+
+
+/* ================= SORT ================= */
+const SCEN=[
+  {title:"Get ready for school",parts:["Wash","Get dressed","Breakfast","Pack bag"],
+   jobs:[["Brush your teeth",0,"Brushing teeth is about keeping clean."],["Have a shower",0,"A shower is about keeping clean."],["Put on your uniform",1,"Your uniform is what you wear."],["Tie your shoelaces",1,"Shoes are part of what you wear."],["Pour some cereal",2,"Cereal is something you eat."],["Make toast",2,"Toast is something you eat."],["Pack your homework",3,"Homework goes in your bag."],["Pack your PE kit",3,"PE kit goes in your bag."]]},
+  {title:"Plan a school trip",parts:["Travel","Food","Activities","Money"],
+   jobs:[["Book a coach",0,"A coach is how everyone gets there."],["Plan the route",0,"The route is about getting there."],["Order packed lunches",1,"Packed lunches are something people eat."],["Check for allergies",1,"Allergies matter for what people can eat."],["Book a museum tour",2,"A tour is something you do on the trip."],["Plan a quiz trail",2,"A quiz trail is something you do on the trip."],["Work out the cost",3,"Cost is about money."],["Collect payments",3,"Payments are about money."]]},
+  {title:"Plan a birthday party",parts:["Food","Music","Invitations","Decorations"],
+   jobs:[["Bake a cake",0,"A cake is something people eat."],["Order pizza",0,"Pizza is something people eat."],["Make a playlist",1,"A playlist is a list of songs."],["Borrow a speaker",1,"A speaker is what plays the songs."],["Write the guest list",2,"The guest list is who you'll invite."],["Send the invites",2,"Sending invites is how guests find out about the party."],["Blow up balloons",3,"Balloons are about how the room looks."],["Hang a banner",3,"A banner is about how the room looks."]]},
+  {title:"Make a video game",parts:["Characters","Levels","Sound","Controls"],
+   jobs:[["Draw the hero",0,"The hero is the main person in the game."],["Design the enemies",0,"Enemies are people or monsters in the game."],["Plan the map for level 1",1,"A map is about where the game takes place."],["Place the coins to collect",1,"Coins are placed around the world the player moves through."],["Record a jump sound",2,"It's something you hear."],["Choose background music",2,"Music is something you hear."],["Make arrow keys move the hero",3,"The arrow keys are how the player controls the game."],["Make space bar jump",3,"The space bar is how the player controls the game."]]},
+];
+let sc=0,picked=null,placed=0,firstTry=0,triedJob={};
+function renderChips(){$("#scenChips").innerHTML=SCEN.map((s,i)=>`<button class="chip" data-s="${i}" aria-pressed="${i===sc}">${esc(s.title)}</button>`).join("");
+  document.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{sc=+b.dataset.s;loadScen()})}
+function sortFb(html,c){const f=$("#sortFb");f.innerHTML=html;f.className="sortfb "+c}
+function loadScen(){
+  renderChips();const s=SCEN[sc];picked=null;placed=0;firstTry=0;triedJob={};
+  $("#bigProb").textContent="Big problem: "+s.title;
+  $("#bins").innerHTML=s.parts.map((p,i)=>`<button class="bin" data-b="${i}" aria-label="${esc(p)}"><h3>${esc(p)}</h3><div class="slot" id="slot${i}"></div></button>`).join("");
+  $("#pool").innerHTML=shuffle(s.jobs.map((j,i)=>i)).map(i=>`<button class="task" data-j="${i}" aria-pressed="false">${esc(s.jobs[i][0])}</button>`).join("");
+  document.querySelectorAll(".task").forEach(t=>t.onclick=()=>pick(t));
+  document.querySelectorAll(".bin").forEach(b=>b.onclick=()=>drop(+b.dataset.b,b));
+  sortFb(`This big problem has been broken into <b>4 smaller parts</b>. Put each job into the right part.`,"n");
+}
+function pick(t){
+  document.querySelectorAll(".task").forEach(x=>x.setAttribute("aria-pressed",x===t));picked=t;
+  document.querySelectorAll(".bin").forEach(b=>b.classList.add("ready"));
+  sortFb(`Where does <b>${esc(t.textContent)}</b> belong? Click one of the parts above.`,"n");
+}
+function drop(bi,binEl){
+  const s=SCEN[sc];
+  if(!picked){sortFb("First click a job from the list below.","n");return}
+  const ji=+picked.dataset.j,job=s.jobs[ji];
+  if(job[1]!==bi){
+    triedJob[ji]=true;binEl.classList.remove("shake");void binEl.offsetWidth;binEl.classList.add("shake");
+    setTimeout(()=>binEl.classList.remove("shake"),500);
+    sortFb(`<b>Not quite.</b> "${esc(job[0])}" doesn't belong in ${esc(s.parts[bi])}. Hint: ${esc(job[2])} Try another part.`,"f");return;
+  }
+  if(!triedJob[ji])firstTry++;
+  $("#slot"+bi).insertAdjacentHTML("beforeend",`<div class="placed">${esc(job[0])}</div>`);
+  picked.remove();picked=null;placed++;
+  document.querySelectorAll(".bin").forEach(b=>b.classList.remove("ready"));
+  const full=s.jobs.filter(j=>j[1]===bi).length===$("#slot"+bi).children.length;if(full)binEl.classList.add("done");
+  if(placed===s.jobs.length){
+    const next=sc<SCEN.length-1;
+    sortFb(`<b>All sorted!</b> You put ${firstTry} out of ${s.jobs.length} in the right part first time. Each part is now a small problem someone could get on with.${next?` <button class="btn" id="nextScen" style="margin-left:.5rem">Next big problem</button>`:` <button class="btn" id="nextScen" style="margin-left:.5rem">Start again</button>`}`,"t");
+    $("#nextScen").onclick=()=>{sc=next?sc+1:0;loadScen()};
+  }else sortFb(`<b>Yes!</b> "${esc(job[0])}" is part of ${esc(s.parts[bi])}. Pick the next job.`,"t");
+}
+loadScen();
+
+/* ================= WATCH 3: BUILD A HOUSE ================= */
+const TREE_H=[
+  {name:"Foundations",color:"#8A5A2B",x:110,leaves:[["Dig ground","dig"],["Concrete","concrete"]]},
+  {name:"Walls",color:"#C0573B",x:310,leaves:[["Lay bricks","bricks"],["Windows","windows"]]},
+  {name:"Roof",color:"#6C4AB6",x:510,leaves:[["Roof frame","frame"],["Roof tiles","tiles"]]},
+  {name:"Finishing",color:"#11904A",x:710,leaves:[["Front door","door"],["Garden","garden"]]},
+];
+const SAY_H={dig:"First, dig the ground.",concrete:"Pour in the concrete.",bricks:"Brick by brick...",windows:"Now fit the windows.",frame:"A wooden frame for the roof.",tiles:"Tiles to keep the rain out.",door:"A front door!",garden:"And a nice garden."};
+let stageH=0;const leafBoxesH=[];
+function buildTreeH(){
+  ["lines1H","lines2H","level1H","level2H"].forEach(id=>$("#"+id).innerHTML="");leafBoxesH.length=0;
+  TREE_H.forEach(b=>{
+    const g=el("g",{class:"pop",style:"transform-origin:50% 0%"},$("#level1H"));
+    el("rect",{x:b.x-85,y:96,width:170,height:40,rx:10,fill:b.color,stroke:"#1B2A49","stroke-width":2.5},g);
+    const t=el("text",{x:b.x,y:122,"text-anchor":"middle","font-family":"Trebuchet MS,sans-serif","font-weight":700,"font-size":17,fill:"#fff"},g);t.textContent=b.name;
+    b.g=g;
+    b.leaves.forEach((lf,j)=>{
+      const lx=b.x+(j?46:-46);
+      const lg=el("g",{class:"pop",style:"transform-origin:50% 0%"},$("#level2H"));
+      const r=el("rect",{class:"leafbox",x:lx-43,y:164,width:86,height:34,rx:8,fill:"#fff",stroke:b.color,"stroke-width":2.5},lg);
+      const tt=el("text",{x:lx,y:186,"text-anchor":"middle","font-family":"Trebuchet MS,sans-serif","font-weight":700,"font-size":lf[0].length>10?11.5:13,fill:"#1B2A49"},lg);tt.textContent=lf[0];
+      leafBoxesH.push({g:lg,r,t:tt,key:lf[1],label:lf[0]});
+    });
+  });
+}
+function sayH(t){const e=$("#sayH");e.innerHTML="";
+  let a=t,b="";if(t.length>26){const w=t.split(" ");a="";while(w.length&&(a+" "+w[0]).trim().length<=26)a=(a+" "+w.shift()).trim();b=w.join(" ")}
+  el("tspan",{x:164,dy:b?0:8},e).textContent=a;if(b)el("tspan",{x:164,dy:18},e).textContent=b}
+function buildRows(){
+  const g=$("#bricks");g.innerHTML="";const rows=[];
+  for(let i=0;i<10;i++){
+    const y=389-i*11,row=el("g",{opacity:0},g);
+    el("rect",{x:310,y,width:200,height:11,fill:"#C0573B",stroke:"#7A2E1E","stroke-width":1},row);
+    for(let x=310+(i%2?12:25);x<510;x+=25)el("line",{x1:x,y1:y,x2:x,y2:y+11,stroke:"#7A2E1E","stroke-width":1},row);
+    rows.push(row);
+  }
+  const t=$("#tiles");t.innerHTML="";const trows=[];
+  for(let i=0;i<6;i++){
+    const y=278-i*12,row=el("g",{opacity:0},t);
+    el("rect",{x:296,y,width:228,height:12,fill:i%2?"#B5342C":"#C9423A"},row);
+    el("line",{x1:296,y1:y+12,x2:524,y2:y+12,stroke:"#7A1F1A","stroke-width":1.5},row);
+    trows.push(row);
+  }
+  return{rows,trows};
+}
+let rowsH={rows:[],trows:[]};
+function resetHouse(){
+  stageH=0;buildTreeH();rowsH=buildRows();
+  $("#hole").style.transform="scaleY(0)";$("#slab").setAttribute("width",0);
+  ["dirt","door","garden"].forEach(id=>$("#"+id).classList.remove("on"));$("#windows").querySelectorAll(".pop").forEach(w=>w.classList.remove("on"));
+  const f=$("#frame");f.setAttribute("opacity",0);f.style.strokeDasharray="";f.style.strokeDashoffset="";
+  $("#rootGH").style.transform="translate(0px,60px) scale(1.25)";$("#rootBoxH").setAttribute("fill","#C92A3B");
+  $("#mouthH").setAttribute("d","M-5 -51 Q0 -55 5 -51");sayH("Build a whole house? Where do I start?");
+  $("#ladder").classList.remove("on");setTool("none");placeB(200,400,0);$("#bArm").removeAttribute("transform");
+  caption("Big problem: <b>build a house</b>. There's a plan, but an empty field. That's a huge job!");
+  $("#mainBtnH").textContent="Break it down";$("#mainBtnH").disabled=false;
+}
+const TOOLS={
+  none:'',
+  shovel:'<line x1="-6" y1="-16" x2="4" y2="12" stroke="#8A5A2B" stroke-width="3" stroke-linecap="round"/><path d="M0 10 L10 8 L12 20 L4 24 Z" fill="#8A97B5" stroke="#1B2A49" stroke-width="1.5"/>',
+  bucket:'<path d="M-6 -2 H8 L6 14 H-4 Z" fill="#8A97B5" stroke="#1B2A49" stroke-width="1.5"/><path d="M-6 -2 Q1 -12 8 -2" fill="none" stroke="#1B2A49" stroke-width="1.5"/>',
+  trowel:'<line x1="0" y1="0" x2="4" y2="6" stroke="#8A5A2B" stroke-width="3"/><path d="M2 6 L14 4 L8 14 Z" fill="#D8DEEA" stroke="#1B2A49" stroke-width="1.5"/>',
+  hammer:'<line x1="0" y1="2" x2="6" y2="-14" stroke="#8A5A2B" stroke-width="3" stroke-linecap="round"/><rect x="0" y="-20" width="14" height="7" rx="1.5" fill="#5A6B8C" stroke="#1B2A49" stroke-width="1.5" transform="rotate(20 7 -16)"/>',
+  tile:'<rect x="-2" y="-4" width="16" height="10" rx="1" fill="#C9423A" stroke="#1B2A49" stroke-width="1.5"/>',
+  can:'<path d="M-4 -4 H10 V10 H-4 Z" fill="#11904A" stroke="#1B2A49" stroke-width="1.5"/><path d="M10 0 L20 -6" stroke="#11904A" stroke-width="3" stroke-linecap="round"/>'
+};
+let bPos={x:200,y:400};
+function setTool(t){$("#bTool").innerHTML=TOOLS[t]}
+function placeB(x,y,ph){bPos={x,y};$("#builder").setAttribute("transform",`translate(${x.toFixed(1)},${y.toFixed(1)})`);
+  const sw=Math.sin(ph||0)*7;$("#bLeg1").setAttribute("x2",-8+sw);$("#bLeg2").setAttribute("x2",8-sw);
+  $("#bInner").setAttribute("transform",`translate(0,${-Math.abs(Math.sin(ph||0))*2})`)}
+async function walkB(x,y=bPos.y,speed=170){const sx=bPos.x,sy=bPos.y,d=Math.hypot(x-sx,y-sy);if(d<1)return;
+  await frames(Math.max(250,d/speed*1000),k=>placeB(sx+(x-sx)*k,sy+(y-sy)*k,k*d/10));placeB(x,y,0)}
+async function climbB(y){const sx=bPos.x,sy=bPos.y,d=Math.abs(y-sy);
+  await frames(d/80*1000,k=>placeB(sx+(y<sy?-6:6)*k,sy+(y-sy)*k,k*d/6));placeB(sx+(y<sy?-6:6),y,0)}
+async function work(ms){await frames(ms,k=>$("#bArm").setAttribute("transform",`rotate(${Math.sin(k*ms/90)*-35} 8 -40)`));$("#bArm").removeAttribute("transform")}
+async function doJob(key){
+  if(key==="dig"){setTool("shovel");await walkB(275);const w=work(1600);await wait(300);$("#hole").style.transform="scaleY(1)";await wait(700);$("#dirt").classList.add("on");await w}
+  if(key==="concrete"){setTool("bucket");await walkB(292);
+    await Promise.all([frames(1800,k=>$("#slab").setAttribute("width",240*k)),walkB(520,400,128),work(1800)])}
+  if(key==="bricks"){setTool("trowel");await walkB(322);
+    for(let i=0;i<rowsH.rows.length;i++){const tx=322+(i%5)*40;const m=walkB(tx,400,300);await m;await work(220);rowsH.rows[i].setAttribute("opacity",1)}}
+  if(key==="windows"){setTool("hammer");const ws=[...$("#windows").querySelectorAll(".pop")];
+    await walkB(350);await work(700);ws[0].classList.add("on");await walkB(444);await work(700);ws[1].classList.add("on");await wait(300)}
+  if(key==="frame"){setTool("none");await walkB(540);$("#ladder").classList.add("on");await wait(500);await climbB(300);setTool("hammer");
+    const f=$("#frame"),L=f.getTotalLength();f.style.strokeDasharray=L;f.style.strokeDashoffset=L;f.setAttribute("opacity",1);
+    await Promise.all([frames(1600,k=>f.style.strokeDashoffset=L*(1-k)),work(1600)])}
+  if(key==="tiles"){setTool("tile");for(const r of rowsH.trows){await work(260);r.setAttribute("opacity",1)}$("#frame").setAttribute("opacity",0);
+    setTool("none");await climbB(400);$("#ladder").classList.remove("on");await wait(300)}
+  if(key==="door"){setTool("hammer");await walkB(448);await work(900);$("#door").classList.add("on");await wait(400)}
+  if(key==="garden"){setTool("can");await walkB(340);await work(500);$("#garden").classList.add("on");await walkB(480);await work(500)}
+}
+$("#mainBtnH").onclick=async()=>{
+  if(busy)return;busy=true;lockEx(true);const btn=$("#mainBtnH");btn.disabled=true;
+  if(stageH===0){
+    $("#rootGH").style.transform="translate(0px,0px) scale(1)";await wait(700);
+    TREE_H.forEach(b=>growLine($("#lines1H"),`M410 64 V80 H${b.x} V96`));await wait(500);
+    for(const b of TREE_H){b.g.classList.add("on");await wait(250)}
+    sayH("Four parts. That's more like it!");
+    caption("<b>Decomposition:</b> break the big problem into parts: foundations, walls, roof and finishing touches.");
+    btn.textContent="Break it down more";stageH=1;
+  }else if(stageH===1){
+    TREE_H.forEach(b=>b.leaves.forEach((_,j)=>growLine($("#lines2H"),`M${b.x} 136 V150 H${b.x+(j?46:-46)} V164`)));await wait(500);
+    for(const lf of leafBoxesH){lf.g.classList.add("on");await wait(140)}
+    sayH("Now each job is small enough to do!");$("#mouthH").setAttribute("d","M-5 -53 Q0 -48 5 -53");
+    caption("Break it down <b>even more</b>. Notice the order matters too: you can't put the roof on before the walls!");
+    btn.textContent="Do one job at a time";stageH=2;
+  }else if(stageH===2){
+    for(let i=0;i<leafBoxesH.length;i++){
+      const lf=leafBoxesH[i];lf.r.setAttribute("fill","#FFE08A");
+      caption(`Job ${i+1} of ${leafBoxesH.length}: <b>${lf.label}</b>`,"t");sayH(SAY_H[lf.key]);
+      await doJob(lf.key);
+      lf.r.setAttribute("fill","#DCF4E5");lf.t.textContent="✓ "+lf.label;lf.t.setAttribute("font-size",lf.label.length>9?11:13);
+      await wait(250);
+    }
+    setTool("none");await walkB(180);
+    await frames(700,k=>placeB(180,400-Math.abs(Math.sin(k*Math.PI*2))*24,0));
+    $("#rootBoxH").setAttribute("fill","#11904A");sayH("Done! One job at a time.");
+    caption("House built! Decomposition also helps you plan the <b>order</b>: foundations first, roof last.","t");
+    btn.textContent="Start again";stageH=3;
+  }else{resetHouse();busy=false;lockEx(false);return}
+  btn.disabled=false;busy=false;lockEx(false);
+};
+
+/* ================= GENERIC: one person does the jobs in turn ================= */
+const ease=k=>(1-Math.cos(k*Math.PI))/2;
+function buildTreeG(pre,tree){
+  ["lines1","lines2","level1","level2"].forEach(n=>$("#"+n+pre).innerHTML="");const leaves=[];
+  tree.forEach(b=>{
+    const g=el("g",{class:"pop",style:"transform-origin:50% 0%"},$("#level1"+pre));
+    el("rect",{x:b.x-85,y:96,width:170,height:40,rx:10,fill:b.color,stroke:"#1B2A49","stroke-width":2.5},g);
+    const t=el("text",{x:b.x,y:122,"text-anchor":"middle","font-family":"Trebuchet MS,sans-serif","font-weight":700,"font-size":17,fill:"#fff"},g);t.textContent=b.name;b.g=g;
+    b.leaves.forEach((lf,j)=>{const lx=b.x+(j?46:-46);
+      const lg=el("g",{class:"pop",style:"transform-origin:50% 0%"},$("#level2"+pre));
+      const r=el("rect",{class:"leafbox",x:lx-43,y:164,width:86,height:34,rx:8,fill:"#fff",stroke:b.color,"stroke-width":2.5},lg);
+      const tt=el("text",{x:lx,y:186,"text-anchor":"middle","font-family":"Trebuchet MS,sans-serif","font-weight":700,"font-size":lf[0].length>10?11.5:13,fill:"#1B2A49"},lg);tt.textContent=lf[0];
+      leaves.push({g:lg,r,t:tt,key:lf[1],label:lf[0]})})});
+  return leaves;
+}
+function wrapSay(id,cx,t,max){const e=$("#"+id);e.innerHTML="";let a=t,b="";
+  if(t.length>max){const w=t.split(" ");a="";while(w.length&&(a+" "+w[0]).trim().length<=max)a=(a+" "+w.shift()).trim();b=w.join(" ")}
+  el("tspan",{x:cx,dy:b?0:8},e).textContent=a;if(b)el("tspan",{x:cx,dy:18},e).textContent=b}
+function makeSeq(cfg){
+  const S={stage:0,leaves:[]};const btn=$("#"+cfg.btn);
+  S.reset=()=>{S.stage=0;S.leaves=buildTreeG(cfg.pre,cfg.tree);$("#rootG"+cfg.pre).style.transform="translate(0px,60px) scale(1.25)";$("#rootBox"+cfg.pre).setAttribute("fill","#C92A3B");
+    cfg.reset();caption(cfg.intro);btn.textContent="Break it down";btn.disabled=false};
+  btn.onclick=async()=>{
+    if(busy)return;busy=true;lockEx(true);btn.disabled=true;
+    if(S.stage===0){
+      $("#rootG"+cfg.pre).style.transform="translate(0px,0px) scale(1)";await wait(700);
+      cfg.tree.forEach(b=>growLine($("#lines1"+cfg.pre),`M410 64 V80 H${b.x} V96`));await wait(500);
+      for(const b of cfg.tree){b.g.classList.add("on");await wait(250)}
+      cfg.say(cfg.says[0]);caption(cfg.caps[0]);btn.textContent="Break it down more";S.stage=1;
+    }else if(S.stage===1){
+      cfg.tree.forEach(b=>b.leaves.forEach((_,j)=>growLine($("#lines2"+cfg.pre),`M${b.x} 136 V150 H${b.x+(j?46:-46)} V164`)));await wait(500);
+      for(const lf of S.leaves){lf.g.classList.add("on");await wait(140)}
+      cfg.say(cfg.says[1]);caption(cfg.caps[1]);btn.textContent="Do one job at a time";S.stage=2;
+    }else if(S.stage===2){
+      for(let i=0;i<S.leaves.length;i++){const lf=S.leaves[i];lf.r.setAttribute("fill","#FFE08A");
+        caption(`Job ${i+1} of ${S.leaves.length}: <b>${lf.label}</b>`,"t");
+        await cfg.job(lf.key,i);
+        lf.r.setAttribute("fill","#DCF4E5");lf.t.textContent="✓ "+lf.label;lf.t.setAttribute("font-size",lf.label.length>9?11:13);await wait(200)}
+      await cfg.finish();$("#rootBox"+cfg.pre).setAttribute("fill","#11904A");caption(cfg.caps[2],"t");btn.textContent="Start again";S.stage=3;
+    }else{S.reset();busy=false;lockEx(false);return}
+    btn.disabled=false;busy=false;lockEx(false);
+  };
+  return S;
+}
+const TOOLX={
+  toothbrush:'<line x1="0" y1="0" x2="2" y2="-14" stroke="#1C6FD1" stroke-width="3" stroke-linecap="round"/><rect x="-1" y="-20" width="6" height="7" rx="1" fill="#fff" stroke="#1B2A49" stroke-width="1"/>',
+  spoon:'<line x1="0" y1="0" x2="3" y2="-12" stroke="#8A97B5" stroke-width="3" stroke-linecap="round"/><ellipse cx="4" cy="-15" rx="4" ry="3" fill="#8A97B5"/>',
+  knife:'<line x1="0" y1="2" x2="2" y2="-4" stroke="#1B2A49" stroke-width="4" stroke-linecap="round"/><path d="M2 -4 L6 -20 L9 -18 L4 -3Z" fill="#D8DEEA" stroke="#1B2A49" stroke-width="1.2"/>',
+  pin:'<rect x="-14" y="-5" width="30" height="7" rx="3.5" fill="#D8B48A" stroke="#1B2A49" stroke-width="1.5"/>',
+  grater:'<rect x="-4" y="-16" width="12" height="16" rx="2" fill="#D8DEEA" stroke="#1B2A49" stroke-width="1.5"/>',
+  none:''
+};
+
+/* ---------- GET READY FOR SCHOOL ---------- */
+let kidS=null;
+function sayS(t){wrapSay("sayS",144,t,26)}
+function clockS(m){const t=8*60+m;$("#clockS").textContent=`${Math.floor(t/60)}:${String(t%60).padStart(2,"0")}`}
+const SCHOOL=makeSeq({pre:"S",btn:"mainBtnS",
+  tree:[{name:"Wash",color:"#1C6FD1",x:110,leaves:[["Brush teeth","teeth"],["Shower","shower"]]},
+        {name:"Get dressed",color:"#6C4AB6",x:310,leaves:[["Uniform","uniform"],["Shoes","shoes"]]},
+        {name:"Breakfast",color:"#E07A1F",x:510,leaves:[["Cereal","cereal"],["Juice","juice"]]},
+        {name:"Pack bag",color:"#11904A",x:710,leaves:[["Homework","homework"],["PE kit","kit"]]}],
+  intro:"Big problem: <b>get ready for school</b>, and the bus comes at 8:35! Where do you start?",
+  says:["Four smaller jobs. I can do that!","Now each job only takes a few minutes!"],
+  caps:["<b>Decomposition:</b> break the big problem into parts: wash, get dressed, breakfast and pack your bag.",
+        "Break it down <b>even more</b>. Notice some jobs need to be in order: shower <b>before</b> putting on your uniform!",
+        "Ready with time to spare! Breaking it down meant nothing was forgotten, not even the PE kit."],
+  say:t=>sayS(t),
+  reset(){
+    $("#kidLayerS").innerHTML="";$("#carryS").innerHTML="";$("#foam").innerHTML="";
+    kidS=makePerson2($("#kidLayerS"),{color:"#9FC9F5",skin:"#E0A878"});
+    const body=kidS.inner.children[2];kidS.body=body;
+    kidS.stripes=el("g",{stroke:"#fff","stroke-width":2},kidS.inner);[-38,-30,-22].forEach(y=>el("line",{x1:-13,y1:y,x2:13,y2:y},kidS.stripes));
+    kidS.tie=el("path",{d:"M-3 -46 L3 -46 L4 -26 L0 -22 L-4 -26Z",fill:"#C92A3B",stroke:"#1B2A49","stroke-width":1,opacity:0},kidS.inner);
+    kidS.shoes=el("g",{opacity:0},kidS.inner);el("ellipse",{cx:-9,cy:1,rx:7,ry:3.5,fill:"#1B2A49"},kidS.shoes);el("ellipse",{cx:9,cy:1,rx:7,ry:3.5,fill:"#1B2A49"},kidS.shoes);
+    kidS.pack=el("g",{opacity:0},kidS.g);el("rect",{x:-24,y:-46,width:14,height:26,rx:5,fill:"#1C6FD1",stroke:"#1B2A49","stroke-width":2},kidS.pack);
+    kidS.g.insertBefore(kidS.pack,kidS.inner);
+    place2(kidS,400,412,0);body.setAttribute("fill","#9FC9F5");
+    ["bowl","glass"].forEach(id=>$("#"+id).classList.remove("on"));
+    $("#water").setAttribute("opacity",0);$("#floorShoes").setAttribute("opacity",1);$("#hw").setAttribute("opacity",1);$("#hw").removeAttribute("transform");
+    $("#kit").setAttribute("opacity",1);$("#floorBag").setAttribute("opacity",1);$("#door").style.transform="";clockS(0);
+    sayS("Yawn... I've got 35 minutes!");
+  },
+  async job(k,i){
+    const p=kidS;
+    if(k==="teeth"){sayS("Brush, brush, brush...");await walk2(p,80,412,220);p.tool.innerHTML=TOOLX.toothbrush;
+      for(let n=0;n<5;n++)el("circle",{cx:90+Math.random()*14,cy:350+Math.random()*10,r:3+Math.random()*3,fill:"#fff",stroke:"#BCD3EE"},$("#foam"));
+      await work2(p,1400);p.tool.innerHTML="";$("#foam").innerHTML=""}
+    if(k==="shower"){sayS("Lovely hot shower.");await walk2(p,190,412,220);$("#water").setAttribute("opacity",1);
+      await frames(1600,k2=>$("#water").setAttribute("transform",`translate(0,${(k2*40)%8})`));$("#water").setAttribute("opacity",0)}
+    if(k==="uniform"){sayS("Uniform on. Don't forget the tie!");await walk2(p,322,412,220);await work2(p,700);
+      p.body.setAttribute("fill","#23407A");p.stripes.setAttribute("opacity",0);p.tie.setAttribute("opacity",1)}
+    if(k==="shoes"){sayS("Shoes on, laces tied.");await walk2(p,430,412,220);$("#floorShoes").setAttribute("opacity",0);p.shoes.setAttribute("opacity",1);await work2(p,700)}
+    if(k==="cereal"){sayS("Breakfast time! Crunch crunch.");await walk2(p,540,412,220);$("#bowl").classList.add("on");p.tool.innerHTML=TOOLX.spoon;await work2(p,1300);p.tool.innerHTML=""}
+    if(k==="juice"){sayS("A glass of orange juice.");await walk2(p,660,412,220);await work2(p,500);await walk2(p,574,412,220);$("#glass").classList.add("on");await work2(p,600)}
+    if(k==="homework"){sayS("Homework! Nearly forgot it.");await walk2(p,594,412,220);const hw=$("#hw");
+      $("#carryS").appendChild(hw);await frames(400,k2=>hw.setAttribute("transform",`translate(0,${-k2*20})`));
+      await walk2(p,726,412,220);await frames(400,k2=>hw.setAttribute("transform",`translate(${(726-593)*k2},${-20+k2*48})`));hw.setAttribute("opacity",0)}
+    if(k==="kit"){sayS("PE kit and school bag. All packed!");await walk2(p,718,412,220);await work2(p,600);
+      $("#kit").setAttribute("opacity",0);$("#floorBag").setAttribute("opacity",0);p.pack.setAttribute("opacity",1)}
+    clockS((i+1)*4);
+  },
+  async finish(){sayS("8:32. Off to school!");$("#door").style.transform="scaleX(0.1)";await wait(600);
+    await walk2(kidS,790,412,180);await frames(400,k=>kidS.g.setAttribute("opacity",1-k));$("#door").style.transform=""}
+});
+
+/* ---------- MAKE A PIZZA ---------- */
+let chefZ=null;
+function sayZ(t){wrapSay("sayZ",154,t,28)}
+const PIZZA=makeSeq({pre:"Z",btn:"mainBtnZ",
+  tree:[{name:"Dough",color:"#C89B6D",x:110,leaves:[["Mix dough","mix"],["Roll it out","roll"]]},
+        {name:"Sauce",color:"#C92A3B",x:310,leaves:[["Chop","chop"],["Spread","spread"]]},
+        {name:"Toppings",color:"#E07A1F",x:510,leaves:[["Cheese","cheese"],["Pepperoni","pepp"]]},
+        {name:"Cook",color:"#6C4AB6",x:710,leaves:[["Heat oven","oven"],["Bake","bake"]]}],
+  intro:"Big problem: <b>make a pizza from scratch</b>. That's a lot of things to think about!",
+  says:["Dough, sauce, toppings, cook. Easy!","Each job is quick on its own."],
+  caps:["<b>Decomposition:</b> break making a pizza into four parts.",
+        "Break it down <b>even more</b>. Some jobs could swap: you could heat the oven <b>first</b>, while you make the dough!",
+        "Pizza's ready! Each small job was simple, and together they solved the big problem."],
+  say:t=>sayZ(t),
+  reset(){
+    $("#chefLayer").innerHTML="";chefZ=makePerson2($("#chefLayer"),{color:"#fff",skin:"#C58C5C",smile:true});
+    el("rect",{x:-12,y:-84,width:24,height:14,rx:4,fill:"#fff",stroke:"#1B2A49","stroke-width":2},chefZ.inner);
+    place2(chefZ,440,372,0);
+    ["doughBall","base","sauce"].forEach(id=>{$("#"+id).setAttribute("rx",0);$("#"+id).setAttribute("ry",0)});
+    $("#base").setAttribute("fill","#F4D9A6");$("#cheese").innerHTML="";$("#pepp").innerHTML="";$("#chopped").innerHTML="";$("#steamZ").innerHTML="";
+    $("#tomatoes").setAttribute("opacity",1);$("#pizzaG").removeAttribute("transform");$("#pizzaG").setAttribute("opacity",1);
+    $("#ovenWin").setAttribute("fill","#2A3558");$("#ovenT").textContent="OFF";
+    sayZ("Pizza for tea! But where do I begin?");
+  },
+  async job(k){
+    const p=chefZ;
+    if(k==="mix"){sayZ("Flour, water, yeast... mix!");await walk2(p,372,372,200);p.tool.innerHTML=TOOLX.spoon;
+      await Promise.all([work2(p,1400),frames(1400,k2=>{$("#doughBall").setAttribute("rx",14*k2);$("#doughBall").setAttribute("ry",9*k2)})]);p.tool.innerHTML=""}
+    if(k==="roll"){sayZ("Roll it out nice and flat.");await walk2(p,545,372,200);$("#doughBall").setAttribute("rx",0);$("#doughBall").setAttribute("ry",0);p.tool.innerHTML=TOOLX.pin;
+      await Promise.all([work2(p,1300),frames(1300,k2=>{$("#base").setAttribute("rx",8+48*k2);$("#base").setAttribute("ry",4+11*k2)})]);p.tool.innerHTML=""}
+    if(k==="chop"){sayZ("Chop the tomatoes.");await walk2(p,666,372,200);p.tool.innerHTML=TOOLX.knife;await work2(p,1200);p.tool.innerHTML="";
+      $("#tomatoes").setAttribute("opacity",0);for(let n=0;n<6;n++)el("rect",{x:648+n*6,y:356+(n%2)*4,width:5,height:5,fill:"#E0412A"},$("#chopped"))}
+    if(k==="spread"){sayZ("Spread the tomato sauce.");$("#chopped").innerHTML="";await walk2(p,545,372,200);p.tool.innerHTML=TOOLX.spoon;
+      await Promise.all([work2(p,1200),frames(1200,k2=>{$("#sauce").setAttribute("rx",44*k2);$("#sauce").setAttribute("ry",9*k2)})]);p.tool.innerHTML=""}
+    if(k==="cheese"){sayZ("Lots of cheese!");p.tool.innerHTML=TOOLX.grater;for(let n=0;n<14;n++){const a=Math.random()*6.28,r=Math.random();el("circle",{cx:545+Math.cos(a)*38*r,cy:353+Math.sin(a)*8*r,r:2.4,fill:"#F2D24B"},$("#cheese"));if(n%3===0)await work2(p,200)}p.tool.innerHTML=""}
+    if(k==="pepp"){sayZ("And some pepperoni.");for(const[dx,dy]of[[-24,-3],[0,-5],[24,-2],[-12,4],[14,4]]){el("ellipse",{cx:545+dx,cy:353+dy,rx:6,ry:3,fill:"#B5342C",stroke:"#7A1F1A","stroke-width":1},$("#pepp"));await work2(p,240)}}
+    if(k==="oven"){sayZ("Heat the oven to 200 degrees.");await walk2(p,700,372,200);await work2(p,600);
+      for(let t=0;t<=200;t+=40){$("#ovenT").textContent=t+"°C";await wait(150)}$("#ovenWin").setAttribute("fill","#F2A007")}
+    if(k==="bake"){sayZ("In it goes for 10 minutes!");const g=$("#pizzaG");
+      await frames(900,k2=>g.setAttribute("transform",`translate(${(766-545)*ease(k2)},${(322-354)*ease(k2)}) scale(${1-.3*k2})`));g.setAttribute("opacity",0);
+      await wait(1200);$("#base").setAttribute("fill","#D9A45A");g.setAttribute("opacity",1);
+      await frames(900,k2=>g.setAttribute("transform",`translate(${(766-545)*(1-ease(k2))},${(322-354)*(1-ease(k2))}) scale(${.7+.3*k2})`));g.removeAttribute("transform")}
+  },
+  async finish(){$("#ovenWin").setAttribute("fill","#2A3558");$("#ovenT").textContent="OFF";sayZ("Pizza's ready! Who's hungry?");
+    for(let n=0;n<3;n++){const c=el("circle",{cx:530+n*15,cy:340,r:5,fill:"#fff",stroke:"#BCD3EE",opacity:.9},$("#steamZ"));frames(1600,k=>{c.setAttribute("cy",340-k*40);c.setAttribute("r",5+k*6);c.setAttribute("opacity",.9*(1-k))})}
+    await wait(800)}
+});
+
+/* ================= QUIZ ================= */
+const Q=[
+  {q:"What is decomposition?",o:["Breaking a big problem into smaller parts","Repeating steps again and again","Making a decision based on a condition","Removing details that don't matter"],a:0,why:"Decomposition means breaking a big problem into smaller, more manageable parts.",
+   h:[null,"That's iteration. Think about the bedroom: what did we do to the big problem first?","That's selection. Think about the bedroom: what did we do to the big problem first?","That's called abstraction, a different skill. Think about the bedroom: what did we do to the big problem first?"]},
+  {q:"Why do we decompose problems?",o:["Smaller parts are easier to solve","It makes the problem take longer","It makes the computer run faster","So we don't have to plan"],a:0,why:"Small parts are easier to understand and solve than one huge problem.",
+   h:[null,"We want to make the problem easier, not slower. How did the worried person feel once it was broken down?","Decomposition is something people do when planning, not something that speeds up the computer. Why was tidying the room easier in small parts?","Decomposition IS a kind of planning. Why was tidying the room easier in small parts?"]},
+  {q:"After solving all the small parts, what should you do?",o:["Put them together to solve the big problem","Throw them away","Start the whole thing again","Only keep the biggest part"],a:0,why:"Once each part is solved, you combine them to solve the whole problem.",
+   h:[null,"Then all that work would be wasted! What happened with the rocket at the end?","There's no need. Every part is already solved. What happened with the rocket at the end?","Every part matters. What happened with the rocket at the end?"]},
+  {q:"Which is the best decomposition of \"Make a cup of tea\"?",o:["Make the tea","Boil water, put a teabag in a cup, pour the water, add milk","Boil water, play football, do homework","Drink the tea"],a:1,why:"It breaks making tea into small steps that are each easy to do.",
+   h:["That's just the big problem again. It hasn't been broken into smaller parts.",null,"Football and homework aren't part of making tea! Each part must help solve the big problem.","That's what you do after the tea is made. Which answer breaks making it into smaller parts?"]},
+  {q:"Which of these is NOT a sub-problem of making a video game?",o:["Choosing the music","Designing the levels","Drawing the characters","Washing the car"],a:3,why:"Washing the car has nothing to do with making the game.",
+   h:["Music is part of a game, remember the Sound part? Which one doesn't belong?","Levels are part of a game. Which one doesn't belong?","Characters are part of a game. Which one doesn't belong?",null]},
+  {q:"Can a smaller part be broken down even further?",o:["Yes, until each part is small enough to solve","No, never","Only in maths","Only computers can do that"],a:0,why:"You keep breaking parts down until each one is small enough to solve.",
+   h:[null,"Think back to the bedroom: \"Bed\" was split into the pillow and the duvet.","It works for any problem. Think back to the bedroom: what happened to \"Bed\"?","People do it all the time when they plan. Think back to the bedroom: what happened to \"Bed\"?"]},
+  {q:"How does decomposition help a team?",o:["Only one person can work at a time","Different people can work on different parts at the same time","Everyone has to do the same part","It means you don't need a team"],a:1,why:"Each person can take a different part, so the work gets done faster.",
+   h:["Remember Sam, Mia, Leo and Ava at the rocket launch. Were they waiting for each other?",null,"That would waste time. Remember the rocket launch: what did Sam, Mia, Leo and Ava each do?","Decomposition makes teamwork easier. Remember the rocket launch: what did Sam, Mia, Leo and Ava each do?"]},
+  {q:"Decomposition, abstraction, pattern recognition and algorithms are all part of…",o:["Computational thinking","Spelling","Grammar","Long division"],a:0,why:"These four skills together are called computational thinking.",
+   h:[null,"These are computing skills, not English. They're all ways of thinking like a computer scientist.","These are computing skills, not English. They're all ways of thinking like a computer scientist.","These are computing skills, not maths. They're all ways of thinking like a computer scientist."]},
+];
+let qi=0,score=0,tries=0;
+function show(){
+  const b=$("#quizBody");
+  if(qi>=Q.length){
+    b.innerHTML=`<div class="end"><p style="margin:0">Right first time</p><p class="big">${score}/${Q.length}</p><p>${score===Q.length?"Perfect! Every answer right first time.":score>=7?"Great work! You got every question in the end.":"You got there in the end! Watch the animation again and see if you can beat your score."}</p><button class="btn" id="again">Try again</button></div>`;
+    $("#again").onclick=()=>{qi=0;score=0;show()};return;
+  }
+  const x=Q[qi];tries=0;
+  b.innerHTML=`<div class="progress"><i style="width:${qi/Q.length*100}%"></i></div>
+    <p style="margin:0;color:var(--muted)">Question ${qi+1} of ${Q.length}</p>
+    <p class="q">${esc(x.q)}</p>
+    <div class="opts">${x.o.map((o,k)=>`<button class="opt" data-k="${k}">${esc(o)}</button>`).join("")}</div>
+    <div class="fb" id="fb" aria-live="polite"></div>`;
+  b.querySelectorAll(".opt").forEach(o=>o.onclick=()=>answer(+o.dataset.k,o));
+}
+function answer(k,btnEl){
+  const x=Q[qi],fb=$("#fb");
+  if(k!==x.a){tries++;btnEl.classList.add("f");btnEl.disabled=true;fb.className="fb f";
+    fb.innerHTML=`<b>${tries===1?"Not quite.":"Still not it, but keep going!"}</b> ${esc(x.h[k])} <b>Have another go.</b>`;return}
+  if(tries===0)score++;
+  document.querySelectorAll(".opt").forEach(o=>o.disabled=true);btnEl.classList.add("t");fb.className="fb t";
+  fb.innerHTML=`<b>${tries===0?"Correct, first time!":"Yes, you got it!"}</b> ${esc(x.why)}<div style="margin-top:.6rem"><button class="btn" id="next">${qi===Q.length-1?"See my score":"Next question"}</button></div>`;
+  $("#next").onclick=()=>{qi++;show()};$("#next").focus();
+}
+show();
+setEx("room");
+document.getElementById("jsWarn").remove();
+</script>
+</body>
+</html>
